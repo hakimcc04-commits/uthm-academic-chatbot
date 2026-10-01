@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profile & Settings · UTHM Academic Analytics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_actions.css') }}">
+  <style>
+    .pwd-meter-bar {
+      height: 6px;
+      width: 100%;
+      background: #E2E8F0;
+      border-radius: 3px;
+      margin: 8px 0 12px;
+      overflow: hidden;
+    }
+    .pwd-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: #EF4444;
+      transition: width 0.3s, background-color 0.3s;
+    }
+    .pwd-checklist {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 16px;
+      font-size: 13px;
+    }
+    .pwd-checklist li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #64748B;
+      margin-bottom: 4px;
+    }
+    .pwd-checklist li.valid {
+      color: #16A34A;
+      font-weight: 500;
+    }
+    .pwd-checklist li.valid::before {
+      content: '✓';
+    }
+    .pwd-checklist li.invalid::before {
+      content: '○';
+    }
+    .backup-modal-codes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-weight: bold;
+      margin: 12px 0;
+    }
+    .backup-modal-codes div {
+      background: white;
+      padding: 6px;
+      text-align: center;
+      border: 1px solid #E2E8F0;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="faq-page theme-{{ theme }}">
+  <main class="settings-shell">
+    <a class="back-link" href="{{ url_for('dashboard') }}">← Back to dashboard</a>
+    <p class="eyebrow">ADMIN ACCOUNT SECURITY</p>
+    <h1>Profile & Security Settings</h1>
+    <p class="muted">Manage authentication credentials, Multi-Factor Authentication (MFA), and dashboard preferences.</p>
+
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="alert {{ category }}">{{ message }}</div>
+    {% endfor %}
+
+    {% if backup_codes %}
+      <div class="alert success" style="background: #ECFDF5; border: 1px solid #6EE7B7; color: #065F46; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+        <h3 style="margin: 0 0 6px 0; font-size: 16px;">🔑 Save Your New Emergency Recovery Codes</h3>
+        <p style="margin: 0 0 8px 0; font-size: 13px;">Save these 8 recovery codes in a password manager or print them out. They will not be shown again.</p>
+        <div class="backup-modal-codes">
+          {% for code in backup_codes %}
+            <div>{{ code }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <section class="settings-grid">
+      <!-- Card 1: Profile Info -->
+      <article class="settings-card">
+        <h2>Account Profile</h2>
+        <dl>
+          <dt>Username</dt>
+          <dd>{{ admin.username }}</dd>
+          <dt>Registered Email</dt>
+          <dd>{{ admin.email or 'No email registered' }}</dd>
+        </dl>
+      </article>
+
+      <!-- Card 2: Theme Options -->
+      <article class="settings-card">
+        <h2>Dashboard Theme</h2>
+        <form method="post" action="{{ url_for('change_theme') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="theme-options">
+            <label><input type="radio" name="theme" value="light" {{ 'checked' if theme == 'light' else '' }}> Light</label>
+            <label><input type="radio" name="theme" value="dark" {{ 'checked' if theme == 'dark' else '' }}> Dark</label>
+          </div>
+          <button class="apply-button" type="submit">Save Theme</button>
+        </form>
+      </article>
+
+      <!-- Card 3: Authenticator App MFA -->
+      <article class="settings-card">
+        <h2>📱 Authenticator App MFA (TOTP)</h2>
+        <p>
+          {% if admin.mfa_enabled %}
+            <span style="color: #16A34A; font-weight: bold;">● Active.</span> 6-digit code required from Google/Microsoft Authenticator app.
+          {% else %}
+            Add Google or Microsoft Authenticator app for strong login protection.
+          {% endif %}
+        </p>
+        {% if not admin.mfa_enabled %}
+          <a class="apply-button inline-button" href="{{ url_for('setup_mfa') }}">Set Up Authenticator MFA</a>
+        {% else %}
+          <form class="compact-form" method="post" action="{{ url_for('disable_mfa') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input name="current_password" type="password" placeholder="Current password" required>
+            <input name="code" inputmode="numeric" maxlength="6" placeholder="Authenticator code" required>
+            <button class="danger-button" type="submit">Disable Authenticator MFA</button>
+          </form>
+        {% endif %}
+      </article>
+
+      <!-- Card 4: Email OTP MFA -->
+      <article class="settings-card">
+        <h2>✉️ Email OTP MFA</h2>
+        <p>
+          {% if admin.email_mfa_enabled %}
+            <span style="color: #16A34A; font-weight: bold;">● Active.</span> Receive 6-digit verification codes sent directly to <strong>{{ admin.email }}</strong>.
+          {% else %}
+            Receive 6-digit one-time passcodes via email during login.
+          {% endif %}
+        </p>
+        <form method="post" action="{{ url_for('toggle_email_mfa') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% if admin.email_mfa_enabled %}
+            <button class="danger-button" type="submit">Disable Email OTP MFA</button>
+          {% else %}
+            <button class="apply-button" type="submit" {{ 'disabled' if not admin.email else '' }}>Enable Email OTP MFA</button>
+          {% endif %}
+        </form>
+      </article>
+
+      <!-- Card 5: Emergency Backup Codes -->
+      <article class="settings-card">
+        <h2>🔑 Emergency Recovery Backup Codes</h2>
+        <p>
+          You currently have <strong>{{ backup_count }}</strong> remaining single-use recovery code(s).
+        </p>
+        <form class="compact-form" method="post" action="{{ url_for('generate_new_backup_codes') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input name="current_password" type="password" placeholder="Confirm current password" required>
+          <button class="apply-button" type="submit">Generate New 8 Recovery Codes</button>
+        </form>
+      </article>
+
+      <!-- Card 6: Change Password with Live Strength Meter -->
+      <article class="settings-card wide">
+        <h2>Change Account Password</h2>
+        <p>Enforce strong security: 12+ characters with uppercase, lowercase, numbers, and symbols.</p>
+        
+        <form class="account-form" method="post" action="{{ url_for('change_password') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          
+          <label>Current Password
+            <input name="current_password" type="password" autocomplete="current-password" required>
+          </label>
+          
+          <label>New Password
+            <input id="new_password_input" name="new_password" type="password" autocomplete="new-password" required minlength="12">
+          </label>
+
+          <!-- Password Strength Meter Bar -->
+          <div class="pwd-meter-bar">
+            <div id="pwd_meter_fill" class="pwd-meter-fill"></div>
+          </div>
+
+          <!-- Real-Time Checklist -->
+          <ul class="pwd-checklist">
+            <li id="chk-len" class="invalid">At least 12 characters</li>
+            <li id="chk-upper" class="invalid">At least one uppercase letter (A-Z)</li>
+            <li id="chk-lower" class="invalid">At least one lowercase letter (a-z)</li>
+            <li id="chk-num" class="invalid">At least one number (0-9)</li>
+            <li id="chk-sym" class="invalid">At least one special symbol (!@#$%^&*)</li>
+          </ul>
+          
+          <label>Confirm New Password
+            <input id="confirm_password_input" name="confirm_password" type="password" autocomplete="new-password" required minlength="12">
+          </label>
+          
+          <button class="apply-button" type="submit" style="margin-top: 12px;">Update Password</button>
+        </form>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const pwdInput = document.getElementById('new_password_input');
+    const meterFill = document.getElementById('pwd_meter_fill');
+    
+    const chkLen = document.getElementById('chk-len');
+    const chkUpper = document.getElementById('chk-upper');
+    const chkLower = document.getElementById('chk-lower');
+    const chkNum = document.getElementById('chk-num');
+    const chkSym = document.getElementById('chk-sym');
+
+    if (pwdInput) {
+      pwdInput.addEventListener('input', function() {
+        const val = pwdInput.value;
+        
+        const isLen = val.length >= 12;
+        const isUpper = /[A-Z]/.test(val);
+        const isLower = /[a-z]/.test(val);
+        const isNum = /[0-9]/.test(val);
+        const isSym = /[^A-Za-z0-9]/.test(val);
+
+        updateCheck(chkLen, isLen);
+        updateCheck(chkUpper, isUpper);
+        updateCheck(chkLower, isLower);
+        updateCheck(chkNum, isNum);
+        updateCheck(chkSym, isSym);
+
+        const score = [isLen, isUpper, isLower, isNum, isSym].filter(Boolean).length;
+        const percent = (score / 5) * 100;
+        meterFill.style.width = percent + '%';
+
+        if (score <= 2) {
+          meterFill.style.backgroundColor = '#EF4444'; // Red
+        } else if (score <= 4) {
+          meterFill.style.backgroundColor = '#F59E0B'; // Orange
+        } else {
+          meterFill.style.backgroundColor = '#10B981'; // Green
+        }
+      });
+    }
+
+    function updateCheck(el, isValid) {
+      if (isValid) {
+        el.classList.remove('invalid');
+        el.classList.add('valid');
+      } else {
+        el.classList.remove('valid');
+        el.classList.add('invalid');
+      }
+    }
+  </script>
+</body>
+</html>

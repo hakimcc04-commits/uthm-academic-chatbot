@@ -1,0 +1,55 @@
+faculty_code,faculty_name,program_code,program_name,duration_semesters,total_tuition_fee_rm,source_file,file_path,page
+FAST,Faculty of Applied Sciences and Technology,BWA,Bachelor of Science (Mathematics Technology) with Honours,6,"28,073.04",FAST.pdf,documents/tuition_fees/FAST.pdf,1
+FAST,Faculty of Applied Sciences and Technology,BWC,Bachelor of Science (Applied Physic) with Honours,6,"28,073.04",FAST.pdf,documents/tuition_fees/FAST.pdf,1
+FAST,Faculty of Applied Sciences and Technology,BWD,Bachelor of Science (Food Technology) with Honours,8,"36,052.72",FAST.pdf,documents/tuition_fees/FAST.pdf,2
+FAST,Faculty of Applied Sciences and Technology,BWK,Bachelor of Science in Industrial Chemistry with Honours,8,"37,324.72",FAST.pdf,documents/tuition_fees/FAST.pdf,3
+FAST,Faculty of Applied Sciences and Technology,BWQ,Bachelor of Science (Industrial Statistic) with Honours,6,"28,073.04",FAST.pdf,documents/tuition_fees/FAST.pdf,1
+FAST,Faculty of Applied Sciences and Technology,BWS,Bachelor of Science (Computational Data Analytics) with Honours,7,"30,668.20",FAST.pdf,documents/tuition_fees/FAST.pdf,4
+FAST,Faculty of Applied Sciences and Technology,BWW,Bachelor of Science (Biological Diversity and Conservation) with Honours,8,"36,900.72",FAST.pdf,documents/tuition_fees/FAST.pdf,5
+FKAAB,Faculty of Civil Engineering and Built Environment,BFF,Bachelor of Civil Engineering with Honours,8,"36,264.72",FKAAB.pdf,documents/tuition_fees/FKAAB.pdf,1
+FKAAB,Faculty of Civil Engineering and Built Environment,BFR,Bachelor of Science in Architecture,8,"36,052.72",FKAAB.pdf,documents/tuition_fees/FKAAB.pdf,2
+FKEE,Faculty of Electrical and Electronic Engineering,BEJ,Bachelor of Electronic Engineering With Honours,8,"36,052.72",FKEE.pdf,documents/tuition_fees/FKEE.pdf,1
+FKEE,Faculty of Electrical and Electronic Engineering,BEV,Bachelor of Electrical Engineering With Honours,8,"36,052.72",FKEE.pdf,documents/tuition_fees/FKEE.pdf,1
+FKMP,Faculty of Mechanical and Manufacturing Engineering,BDC,Bachelor of Technology in Aeronautical Engineering (Professional Flight) with Honours,8,"38,172.72",FKMP.pdf,documents/tuition_fees/FKMP.pdf,1
+FKMP,Faculty of Mechanical and Manufacturing Engineering,BDD,Bachelor of Mechanical Engineering with Honours,8,"36,052.72",FKMP.pdf,documents/tuition_fees/FKMP.pdf,2
+FKMP,Faculty of Mechanical and Manufacturing Engineering,BDG,Bachelor of Technology in Oil and Gas Plant Operation with Honours,7,"39,517.86",FKMP.pdf,documents/tuition_fees/FKMP.pdf,3
+FKMP,Faculty of Mechanical and Manufacturing Engineering,BDJ,Bachelor of Mechanical Engineering Technology (Plant) with Honours,8,"36,052.72",FKMP.pdf,documents/tuition_fees/FKMP.pdf,4
+FKMP,Faculty of Mechanical and Manufacturing Engineering,BDM,Bachelor of Aeronautical Engineering Technology (Aircraft Maintenance) with Honours,8,"36,172.72",FKMP.pdf,documents/tuition_fees/FKMP.pdf,5
+FKMP,Faculty of Mechanical and Manufacturing Engineering,BDX,Bachelor of Engineering Technology (Aircraft Manufacturing) with Honours,8,"56,169.40",FKMP.pdf,documents/tuition_fees/FKMP.pdf,6
+FPTP,Faculty of Technology Management and Business,BPA,Bachelor Degree of Technology Management (with honours),8,"36,052.72",FPTP.pdf,documents/tuition_fees/FPTP.pdf,1
+FPTP,Faculty of Technology Management and Business,BPB,Bachelor Degree of Technology Management (Production and Operation) with Honours,8,"36,052.72",FPTP.pdf,documents/tuition_fees/FPTP.pdf,1
+FPTP,Faculty of Technology Management and Business,BPC,Bachelor Degree of Technology Management (Construction) with Honours,8,"36,052.72",FPTP.pdf,documents/tuition_fees/FPTP.pdf,1
+FPTP,Faculty of Technology Management and Business,BPD,Bachelor Degree of Real Estate Management with Honours,8,"36,052.72",FPTP.pdf,documents/tuition_fees/FPTP.pdf,1
+FPTP,Faculty of Technology Management and Business,BPP,Bachelor Degree of Technology Management (Production and Operation) with Honours,8,"36,052.72",FPTP.pdf,documents/tuition_fees/FPTP.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBA,Bachelor of Vocational Education (General Machining) with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBB,Bachelor of Vocational Education (Building Construction) with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBC,Bachelor of Vocational Education (Catering) with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBD,Bachelor of Vocational Education (Welding and Metal Fabrication) with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBE,Bachelor of Vocational Education (Electrical and Electronic) with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBF,Bachelor of Vocational Education (Creative Multimedia) with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBG,Bachelor of Vocational Education (Refrigeration and Air Conditioning) with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBJ,Bachelor of Technology in Electrical Maintenance System with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBN,Bachelor of Technology in Industrial Electronic Automation with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBO,Bachelor of Technology in Industrial Machining with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBQ,Bachelor in Food Service Industry with Honours,8,"40,148.56",FPTV.pdf,documents/tuition_fees/FPTV.pdf,2
+FPTV,Faculty of Technical and Vocational Education,BBS,Bachelor in Food Service Technology with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBX,Bachelor of Technology in Welding with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBY,Bachelor of Technology in Building Construction with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FPTV,Faculty of Technical and Vocational Education,BBZ,Bachelor of Technology in Refrigeration and Air Conditioning with Honours,8,"36,052.72",FPTV.pdf,documents/tuition_fees/FPTV.pdf,1
+FSKTM,Faculty of Computer Science and Information Technology,BIM,Bachelor of Computer Science (Multimedia Computing) with Honours,7,"32,062.88",FSKTM.pdf,documents/tuition_fees/FSKTM.pdf,1
+FSKTM,Faculty of Computer Science and Information Technology,BIP,Bachelor of Computer Science (Software Engineering) with Honours,7,"32,062.88",FSKTM.pdf,documents/tuition_fees/FSKTM.pdf,1
+FSKTM,Faculty of Computer Science and Information Technology,BIS,Bachelor of Computer Science (Information Security) with Honours,7,"32,062.88",FSKTM.pdf,documents/tuition_fees/FSKTM.pdf,1
+FSKTM,Faculty of Computer Science and Information Technology,BIT,Bachelor of Information Technology with Honours,6,"30,578.88",FSKTM.pdf,documents/tuition_fees/FSKTM.pdf,2
+FSKTM,Faculty of Computer Science and Information Technology,BIW,Bachelor of Computer Science (Web Technology) with Honours,7,"32,062.88",FSKTM.pdf,documents/tuition_fees/FSKTM.pdf,1
+FTK,Faculty of Engineering Technology,BNA,Bachelor Degree of Civil Engineering Technology (Environmental) with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNB,Bachelor Degree of Civil Engineering Technology (Building Services) with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNC,Bachelor Degree of Civil Engineering Technology (Construction) with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BND,Bachelor of Electronic Engineering Technology (Industrial Automation) with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNE,Bachelor of Electrical Engineering Technology (Electrical Power) with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNF,Bachelor of Electronic Engineering Technology (Communication and Computer) with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNG,Bachelor of Mechanical Engineering Technology (Automotive) with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNM,Bachelor of Mechanical Engineering Technology (Manufacturing) with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNN,Bachelor of Chemical Engineering Technology (Biotechnology) with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNS,Bachelor of Technology in Occupational Safety and Health with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNT,Bachelor of Engineering Technology in Rail Transportation with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1
+FTK,Faculty of Engineering Technology,BNX,Bachelor of Technology in Furniture Design and Manufacturing with Honours,8,"36,052.72",FTK.pdf,documents/tuition_fees/FTK.pdf,1

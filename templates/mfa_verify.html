@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MFA Verification · UTHM Academic Analytics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_actions.css') }}">
+  <style>
+    .mfa-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border-color, #E2E8F0);
+      padding-bottom: 8px;
+    }
+    .mfa-tab-btn {
+      background: none;
+      border: none;
+      padding: 8px 16px;
+      font-weight: 600;
+      color: #64748B;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .mfa-tab-btn.active {
+      background: #0A2C52;
+      color: #FFFFFF;
+    }
+    .mfa-tab-panel {
+      display: none;
+    }
+    .mfa-tab-panel.active {
+      display: block;
+    }
+    .otp-resend-box {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px dashed #CBD5E1;
+    }
+  </style>
+</head>
+<body class="login-page">
+  <main class="account-card wide-card" style="max-width: 480px; margin: 40px auto; padding: 32px; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08);">
+    <p class="eyebrow" style="color: #1976D2; font-weight: 700; font-size: 12px; letter-spacing: 1px;">MULTI-FACTOR AUTHENTICATION</p>
+    <h1 style="margin-top: 4px; font-size: 24px; color: #0A2C52;">Verify your identity</h1>
+    <p class="muted" style="color: #64748B; font-size: 14px; margin-bottom: 20px;">Choose your verification method to complete sign-in.</p>
+
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="alert {{ category }}" style="padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; {{ 'background: #FEE2E2; color: #991B1B;' if category == 'error' else ('background: #FEF3C7; color: #92400E;' if category == 'warning' else 'background: #E0F2FE; color: #075985;') }}">{{ message }}</div>
+    {% endfor %}
+
+    <div class="mfa-tabs">
+      <button type="button" class="mfa-tab-btn {{ 'active' if active_tab == 'totp' or not active_tab else '' }}" onclick="switchTab('totp')">📱 Authenticator</button>
+      <button type="button" class="mfa-tab-btn {{ 'active' if active_tab == 'email' else '' }}" onclick="switchTab('email')">✉️ Email OTP</button>
+      <button type="button" class="mfa-tab-btn {{ 'active' if active_tab == 'backup' else '' }}" onclick="switchTab('backup')">🔑 Backup Code</button>
+    </div>
+
+    <!-- Panel 1: Authenticator App (TOTP) -->
+    <div id="panel-totp" class="mfa-tab-panel {{ 'active' if active_tab == 'totp' or not active_tab else '' }}">
+      <form class="account-form" method="post">
+        <input type="hidden" name="action" value="verify_totp">
+        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #1E293B;">6-Digit Authenticator Code
+          <input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="width: 100%; padding: 10px; font-size: 18px; letter-spacing: 4px; text-align: center; border: 1px solid #CBD5E1; border-radius: 6px;" autofocus>
+        </label>
+        <button class="apply-button" type="submit" style="width: 100%; padding: 12px; margin-top: 16px; background: #0A2C52; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Verify & Sign In</button>
+      </form>
+    </div>
+
+    <!-- Panel 2: Email OTP Code -->
+    <div id="panel-email" class="mfa-tab-panel {{ 'active' if active_tab == 'email' else '' }}">
+      <form class="account-form" method="post" style="margin-bottom: 12px;">
+        <input type="hidden" name="action" value="send_email_otp">
+        <p style="font-size: 13px; color: #475569; margin-bottom: 12px;">Click below to send a fresh 6-digit verification code to your email: <strong>{{ admin.email or admin.username }}</strong></p>
+        <button class="apply-button" type="submit" style="width: 100%; padding: 10px; background: #1E293B; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Send Code to Email ✉️</button>
+      </form>
+
+      <form class="account-form" method="post" style="margin-top: 16px;">
+        <input type="hidden" name="action" value="verify_email_otp">
+        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #1E293B;">Enter Email OTP Code
+          <input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="654321" style="width: 100%; padding: 10px; font-size: 18px; letter-spacing: 4px; text-align: center; border: 1px solid #CBD5E1; border-radius: 6px;">
+        </label>
+        <button class="apply-button" type="submit" style="width: 100%; padding: 12px; margin-top: 12px; background: #0A2C52; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Verify Email Code</button>
+      </form>
+    </div>
+
+    <!-- Panel 3: Emergency Backup Code -->
+    <div id="panel-backup" class="mfa-tab-panel {{ 'active' if active_tab == 'backup' else '' }}">
+      <form class="account-form" method="post">
+        <input type="hidden" name="action" value="verify_backup_code">
+        <p style="font-size: 13px; color: #475569; margin-bottom: 12px;">Lost your device? Enter one of your single-use 8-character recovery codes.</p>
+        <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #1E293B;">8-Character Recovery Code
+          <input name="backup_code" placeholder="A1B2-C3D4" maxlength="9" style="width: 100%; padding: 10px; font-size: 16px; letter-spacing: 2px; text-align: center; border: 1px solid #CBD5E1; border-radius: 6px;">
+        </label>
+        <button class="apply-button" type="submit" style="width: 100%; padding: 12px; margin-top: 16px; background: #991B1B; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Use Recovery Code</button>
+      </form>
+    </div>
+
+    <div style="margin-top: 24px; text-align: center;">
+      <a href="{{ url_for('logout') }}" style="color: #64748B; font-size: 13px; text-decoration: none;">← Cancel & return to sign in</a>
+    </div>
+  </main>
+
+  <script>
+    function switchTab(tabName) {
+      document.querySelectorAll('.mfa-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.mfa-tab-panel').forEach(panel => panel.classList.remove('active'));
+      
+      const btn = event.target;
+      const panel = document.getElementById('panel-' + tabName);
+      if (btn) btn.classList.add('active');
+      if (panel) panel.classList.add('active');
+    }
+  </script>
+</body>
+</html>

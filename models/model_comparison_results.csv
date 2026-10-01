@@ -1,0 +1,11 @@
+query,expected_intent,m1_pred,m1_correct,m1_latency,m2_pred,m2_correct,m2_latency,m3_correct,m3_latency
+mcm mana nk dpt 2nd class upper uthm?,degree_classification,degree_classification,1,0.0021376609802246094,course_registration,0,0.0024111270904541016,1,31.540834665298462
+nak gugur subjek macam mana?,add_drop_course,add_drop_course,1,0.0017080307006835938,add_drop_course,1,0.0013697147369384766,1,28.250685214996338
+apa syarat anugerah dekan?,deans_award,anugerah_diraja,0,0.0017840862274169922,deans_award,1,0.001497507095336914,1,28.936551094055176
+bila peperiksaan akhir?,final_exam,ppa_final_exam_schedule,0,0.001332998275756836,ppa_final_exam_schedule,0,0.0016934871673583984,1,25.902031421661377
+macam mana nak bayar yuran pengajian?,fee_payment,fee_payment,1,0.002504587173461914,fee_payment,1,0.0017833709716796875,1,40.36801028251648
+berapa gpa minimum untuk lulus?,cgpa_gpa,credit_transfer,0,0.0015492439270019531,graduation,0,0.0018341541290283203,1,15.06937289237976
+mana nak mohon tangguh semester?,academic_regulation,defer_semester,0,0.001722574234008789,graduation,0,0.002201080322265625,1,48.52763652801514
+bagaimana nak mendaftar kursus smap?,course_registration,course_registration,1,0.0015635490417480469,course_registration,1,0.001592397689819336,1,4.167841196060181
+apa nombor hubungan ppa?,contact_ppa,contact_ppa,1,0.002191305160522461,contact_ppa,1,0.0023622512817382812,1,2.2618725299835205
+dimana nak semak keputusan muet?,ppa_muet_info,faq_muet_application,0,0.0015676021575927734,faq_muet_application,0,0.0018725395202636719,1,7.231142520904541

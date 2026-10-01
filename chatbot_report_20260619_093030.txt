@@ -1,0 +1,19 @@
+
+==================================================
+CHATBOT ANALYTICS REPORT
+==================================================
+Generated Date          : 2026-06-19 09:30:30
+
+Total Queries           : 92
+Answered Queries        : 83
+Unanswered Queries      : 6
+Converted To FAQ        : 2
+
+Total FAQ Records       : 14
+
+Total Feedback          : 1
+Helpful Feedback        : 1
+Not Helpful Feedback    : 0
+
+Most Asked Intent       : ML_Prediction
+==================================================

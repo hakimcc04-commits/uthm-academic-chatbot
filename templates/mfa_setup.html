@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Set Up MFA · UTHM Academic Analytics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_actions.css') }}">
+  <style>
+    .backup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 14px;
+      margin: 12px 0 20px;
+    }
+    .backup-code-item {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      padding: 6px 10px;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: bold;
+      color: #0F172A;
+    }
+  </style>
+</head>
+<body class="faq-page">
+  <main class="account-card" style="max-width: 520px; margin: 30px auto; padding: 32px; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08);">
+    <a class="back-link" href="{{ url_for('profile') }}" style="color: #64748B; text-decoration: none; font-size: 14px;">← Back to settings</a>
+    <p class="eyebrow" style="color: #1976D2; font-weight: 700; font-size: 12px; letter-spacing: 1px; margin-top: 12px;">MULTI-FACTOR AUTHENTICATION</p>
+    <h1 style="margin-top: 4px; font-size: 22px; color: #0A2C52;">Set Up Authenticator MFA</h1>
+    <p class="muted" style="color: #64748B; font-size: 14px;">Scan this QR code in Google Authenticator, Microsoft Authenticator, or Authy app.</p>
+
+    <div style="text-align: center; margin: 20px 0;">
+      <img class="mfa-qr" src="data:image/png;base64,{{ qr_data }}" alt="Authenticator QR code" style="width: 180px; height: 180px; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px;">
+    </div>
+
+    <details style="margin-bottom: 20px;">
+      <summary style="cursor: pointer; color: #1976D2; font-size: 13px; font-weight: 600;">Cannot scan the QR code? Click to view secret key</summary>
+      <code class="mfa-secret" style="display: block; margin-top: 8px; padding: 8px; background: #F1F5F9; border-radius: 4px; font-weight: bold; letter-spacing: 1px; word-break: break-all; text-align: center;">{{ secret }}</code>
+    </details>
+
+    <div style="border-top: 1px solid #E2E8F0; padding-top: 16px; margin-top: 16px;">
+      <h3 style="font-size: 15px; color: #0F172A; margin-bottom: 4px;">⚠️ Single-Use Emergency Recovery Codes</h3>
+      <p style="font-size: 12px; color: #64748B; margin-bottom: 8px;">Save these 8 recovery codes in a safe place. You can use them to log in if you lose your phone.</p>
+      
+      <div class="backup-grid">
+        {% for code in backup_codes %}
+          <div class="backup-code-item">{{ code }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="alert {{ category }}" style="padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; {{ 'background: #FEE2E2; color: #991B1B;' if category == 'error' else 'background: #E0F2FE; color: #075985;' }}">{{ message }}</div>
+    {% endfor %}
+
+    <form class="account-form" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #1E293B;">Enter 6-Digit Code from App to Confirm
+        <input name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456" style="width: 100%; padding: 10px; font-size: 18px; letter-spacing: 4px; text-align: center; border: 1px solid #CBD5E1; border-radius: 6px;" required autofocus>
+      </label>
+      <button class="apply-button" type="submit" style="width: 100%; padding: 12px; margin-top: 16px; background: #0A2C52; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Enable Authenticator MFA</button>
+    </form>
+  </main>
+</body>
+</html>

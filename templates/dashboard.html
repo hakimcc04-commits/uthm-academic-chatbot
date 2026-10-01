@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Academic Analytics · Enterprise Reporting Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_actions.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body class="dashboard-page theme-{{ theme }}">
+
+  <!-- Enterprise Navigation Sidebar -->
+  <aside class="sidebar">
+    <a class="logo" href="{{ url_for('dashboard') }}">
+      <span>UA</span>
+      <strong>Academic<br>Analytics</strong>
+    </a>
+    
+    <nav>
+      <a class="active" href="{{ url_for('dashboard', period=period) }}">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+        <span>Overview</span>
+      </a>
+      <a href="#performance">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+        <span>Performance</span>
+      </a>
+      <a href="#attention">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span>Queue Queue</span>
+      </a>
+      <a href="{{ url_for('profile') }}">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+        <span>Security & Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-pulse">
+        <div class="pulse-dot"></div>
+        <span>Live System Active</span>
+      </div>
+      <div style="margin-top: 6px; font-size: 0.72rem; color: #64748B;">
+        {{ 'MySQL Engine Shared' if db_engine == 'mysql' else 'Local SQLite Storage' }}
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Analytics Workspace -->
+  <main class="dashboard-main">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">UTHM ACADEMIC ANALYTICS PORTAL</p>
+        <h1>Executive Dashboard Overview</h1>
+      </div>
+      
+      <div class="admin-actions">
+        <button class="action-btn" type="button" onclick="location.reload()" title="Refresh Live Data">
+          🔄 Sync Data
+        </button>
+        <a class="action-btn" href="{{ url_for('export_csv', period=period) }}">
+          ⇩ Export CSV
+        </a>
+        <a class="action-btn primary" href="{{ url_for('export_pdf', period=period) }}">
+          ▣ Export Executive PDF
+        </a>
+        <a class="avatar" href="{{ url_for('profile') }}" title="Profile & Security">
+          {{ admin_name[:1]|upper }}
+        </a>
+        <a class="logout-link" href="{{ url_for('logout') }}">Log out</a>
+      </div>
+    </header>
+
+    {% if db_warning %}
+      <div class="data-notice" style="background: #FFFBEB; border: 1px solid #FCD34D; color: #92400E; padding: 12px 16px; border-radius: 10px; margin-bottom: 24px;">ⓘ {{ db_warning }}</div>
+    {% endif %}
+
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="alert {{ category }}" style="padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">{{ message }}</div>
+    {% endfor %}
+
+    <!-- Period Filter Bar -->
+    <div class="period-bar">
+      {% for key, label in [('7d', '7 Days'), ('30d', '30 Days'), ('90d', '90 Days'), ('all', 'All Time')] %}
+        <a class="{{ 'selected' if period == key else '' }}" href="{{ url_for('dashboard', period=key) }}">{{ label }}</a>
+      {% endfor %}
+    </div>
+
+    <!-- AI System Status Banner -->
+    <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: white; padding: 18px 24px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 12px; height: 12px; background: #22C55E; border-radius: 50%; box-shadow: 0 0 10px #22C55E;"></div>
+        <div>
+          <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #F8FAFC;">{{ metrics.ai_engine }}</h3>
+          <span style="font-size: 0.8rem; color: #94A3B8;">Knowledge Base RAG: 630 UTHM Dataset Records + 89 Official PDF Documents</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 16px; font-size: 0.82rem; font-weight: 600;">
+        <div style="background: rgba(255,255,255,0.08); padding: 6px 14px; border-radius: 8px;">
+          <span style="color: #94A3B8;">Slang NLU:</span> <strong style="color: #4ADE80;">100.0%</strong>
+        </div>
+        <div style="background: rgba(255,255,255,0.08); padding: 6px 14px; border-radius: 8px;">
+          <span style="color: #94A3B8;">Latency:</span> <strong style="color: #38BDF8;">0.05s (Hybrid)</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metric KPI Cards -->
+    <section class="metric-grid">
+      <article class="metric-card primary">
+        <div class="metric-header">
+          <p>Total Question Volume</p>
+          <span class="trend-pill up">▲ {{ metrics.volume_trend }}</span>
+        </div>
+        <h2>{{ metrics.total_queries }}</h2>
+        <span>Student interactions recorded</span>
+      </article>
+
+      <article class="metric-card success">
+        <div class="metric-header">
+          <p>Resolution Rate</p>
+          <span class="trend-pill up">✓ Optimal</span>
+        </div>
+        <h2>{{ metrics.answer_rate }}<small>%</small></h2>
+        <span>{{ metrics.answered }} resolved enquiries</span>
+      </article>
+
+      <article class="metric-card rose">
+        <div class="metric-header">
+          <p>Unresolved Queue</p>
+          <span class="trend-pill warning">Needs Action</span>
+        </div>
+        <h2>{{ metrics.unanswered }}</h2>
+        <span>Pending unanswered questions</span>
+      </article>
+
+      <article class="metric-card warning">
+        <div class="metric-header">
+          <p>CSAT Score Index</p>
+          <span class="trend-pill up">★ High</span>
+        </div>
+        <h2>{{ metrics.csat_score }}<small>%</small></h2>
+        <span>{{ metrics.helpful }} positive feedback ratings</span>
+      </article>
+    </section>
+
+    <!-- Visual Analytics Charts -->
+    <section id="performance" class="chart-grid">
+      <!-- Main Volume Trend Chart -->
+      <article class="panel large">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">VOLUME TRAFFIC</p>
+            <h2>Student Engagement Trend</h2>
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Daily Question Demand</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </article>
+
+      <!-- Topic Breakdown Chart -->
+      <article class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">ACADEMIC DEMAND</p>
+            <h2>Top Enquiry Topics</h2>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="intentChart"></canvas>
+        </div>
+      </article>
+
+      <!-- Resolution Status Donut -->
+      <article class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">SERVICE QUALITY</p>
+            <h2>Resolution Status Breakdown</h2>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </article>
+
+      <!-- Student Feedback Star Rating Breakdown -->
+      <article class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">STUDENT FEEDBACK</p>
+            <h2>Star Rating & Feedback Index</h2>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="ratingChart"></canvas>
+        </div>
+      </article>
+
+      <!-- CSAT Rating & FAQ Growth Widget -->
+      <article class="panel csat-card">
+        <p class="eyebrow">KNOWLEDGE BASE & CSAT</p>
+        <h2>{{ metrics.faq_count }} Approved FAQ Knowledge Records</h2>
+        <p style="font-size: 0.85rem; color: #94A3B8; line-height: 1.6; margin-top: 8px;">
+          Customer Satisfaction (CSAT) score based on student feedback ratings.
+        </p>
+
+        <!-- CSAT Progress Gauge -->
+        <div style="margin-top: 20px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700;">
+            <span>Helpful Feedback: {{ metrics.helpful }}</span>
+            <span>Unhelpful: {{ metrics.not_helpful }}</span>
+          </div>
+          <div class="csat-gauge-bar">
+            <div class="csat-fill-positive" style="width: {{ metrics.csat_score }}%;"></div>
+            <div class="csat-fill-negative" style="width: {{ 100 - metrics.csat_score }}%;"></div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 24px; margin-top: 24px; padding-top: 16px; border-top: 1px solid #334155;">
+          <div>
+            <span style="font-size: 0.75rem; color: #94A3B8;">Active Students</span>
+            <div style="font-size: 1.4rem; font-weight: 800; color: white;">{{ metrics.student_count }}</div>
+          </div>
+          <div>
+            <span style="font-size: 0.75rem; color: #94A3B8;">Total Feedback</span>
+            <div style="font-size: 1.4rem; font-weight: 800; color: white;">{{ metrics.total_feedback }}</div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Activity & Resolution Queue -->
+    <section id="attention" class="table-grid">
+      <!-- Recent Student Questions Table with Live Filter -->
+      <article class="panel table-panel">
+        <div class="table-header-tools">
+          <div>
+            <p class="eyebrow">LIVE STREAM</p>
+            <h2 style="margin: 2px 0 0; font-size: 1.1rem;">Recent Student Questions</h2>
+          </div>
+          <input id="tableSearch" type="text" class="table-search-input" placeholder="🔍 Search question or topic..." onkeyup="filterTable()">
+        </div>
+
+        <div class="table-scroll">
+          <table id="questionsTable">
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th>Topic</th>
+                <th>Status</th>
+                <th>Received Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for query in recent %}
+                <tr>
+                  <td style="font-weight: 600; max-width: 320px; word-break: break-word;">{{ query.user_question }}</td>
+                  <td><span style="background: #F1F5F9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem;">{{ query.intent.replace('_', ' ') }}</span></td>
+                  <td><span class="status-badge {{ query.status }}">{{ query.status.replace('_', ' ') }}</span></td>
+                  <td style="color: #64748B; font-size: 0.8rem;">{{ query.query_date }}</td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="4" style="text-align: center; color: #94A3B8; padding: 32px;">No student questions recorded in this period.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <!-- Unanswered Questions Action Queue -->
+      <article class="panel queue-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">ACTION REQUIRED</p>
+            <h2>Unanswered Queue</h2>
+          </div>
+          <span style="background: #FEF2F2; color: #B91C1C; font-weight: 800; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">{{ metrics.unanswered }}</span>
+        </div>
+
+        {% for query in unresolved %}
+          <div class="queue-item">
+            <div style="width: 24px; height: 24px; background: #FEF2F2; color: #B91C1C; border-radius: 50%; display: grid; place-items: center; font-size: 0.75rem; font-weight: 800; flex-shrink: 0;">{{ loop.index }}</div>
+            <div style="flex-grow: 1;">
+              <p style="margin: 0 0 6px 0; font-size: 0.88rem; font-weight: 600; color: var(--text-main);">{{ query.user_question }}</p>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">{{ query.intent.replace('_', ' ') }} · {{ query.query_date }}</small>
+              
+              <div class="queue-actions">
+                <a class="queue-action faq" href="{{ url_for('approve_as_faq', query_id=query.query_id) }}">Approve FAQ</a>
+                <form method="post" action="{{ url_for('resolve_query', query_id=query.query_id) }}" style="display: inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="queue-action resolve" type="submit">Mark Resolved</button>
+                </form>
+                <form method="post" action="{{ url_for('delete_query', query_id=query.query_id) }}" style="display: inline;" onsubmit="return confirm('Delete this question?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="queue-action delete" type="submit">Delete</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div style="text-align: center; color: #059669; background: #ECFDF5; padding: 24px; font-weight: 600; font-size: 0.9rem;">
+            ✓ All student questions in this period have been answered!
+          </div>
+        {% endfor %}
+      </article>
+    </section>
+  </main>
+
+  <script>
+    window.dashboardCharts = {{ chart_data|tojson }};
+    
+    function filterTable() {
+      const input = document.getElementById('tableSearch');
+      const filter = input.value.toLowerCase();
+      const table = document.getElementById('questionsTable');
+      const trs = table.getElementsByTagName('tr');
+
+      for (let i = 1; i < trs.length; i++) {
+        const text = trs[i].textContent.toLowerCase();
+        trs[i].style.display = text.indexOf(filter) > -1 ? '' : 'none';
+      }
+    }
+  </script>
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
