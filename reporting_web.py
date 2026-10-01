@@ -325,7 +325,7 @@ def rows(sql: str, params=()):
     cursor = connection.cursor()
     cursor.execute(sql, params)
     data = cursor.fetchall()
-    columns = [column[0] for column in cursor.description]
+    columns = [str(column[0]).lower() for column in cursor.description] if cursor.description else []
     cursor.close()
     return [dict(zip(columns, row)) for row in data]
 
