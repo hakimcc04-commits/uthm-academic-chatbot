@@ -62,45 +62,62 @@ class SQLiteWrapperConnection:
 
 
 def connect_server():
-    return pymysql.connect(
-        host=MYSQL_HOST,
-        port=MYSQL_PORT,
-        user=MYSQL_USER,
-        password=MYSQL_PASSWORD,
-        charset="utf8mb4",
-        autocommit=True,
-    )
+    kwargs = {
+        "host": MYSQL_HOST,
+        "port": MYSQL_PORT,
+        "user": MYSQL_USER,
+        "password": MYSQL_PASSWORD,
+        "charset": "utf8mb4",
+        "autocommit": True,
+    }
+    if os.getenv("MYSQL_SSL", "false").lower() in ("true", "1", "yes"):
+        kwargs["ssl"] = {"ca": None}
+    return pymysql.connect(**kwargs)
 
 
 def ensure_database():
-    conn = connect_server()
     try:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                f"CREATE DATABASE IF NOT EXISTS `{MYSQL_DATABASE}` "
-                "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-            )
-    finally:
-        conn.close()
+        conn = connect_server()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    f"CREATE DATABASE IF NOT EXISTS `{MYSQL_DATABASE}` "
+                    "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+                )
+        finally:
+            conn.close()
+    except Exception as err:
+        print(f"[WARN] Could not ensure database creation: {err}")
 
 
 def connect_db():
+    kwargs = {
+        "host": MYSQL_HOST,
+        "port": MYSQL_PORT,
+        "user": MYSQL_USER,
+        "password": MYSQL_PASSWORD,
+        "charset": "utf8mb4",
+        "autocommit": False,
+    }
+    if os.getenv("MYSQL_SSL", "false").lower() in ("true", "1", "yes"):
+        kwargs["ssl"] = {"ca": None}
+
+    # 1. Try connecting directly to target database (ideal for Cloud MySQL like Aiven/Railway)
+    try:
+        db_kwargs = dict(kwargs)
+        db_kwargs["database"] = MYSQL_DATABASE
+        return pymysql.connect(**db_kwargs)
+    except Exception:
+        pass
+
+    # 2. Try creating database first (ideal for local XAMPP MySQL)
     try:
         ensure_database()
-        kwargs = {
-            "host": MYSQL_HOST,
-            "port": MYSQL_PORT,
-            "user": MYSQL_USER,
-            "password": MYSQL_PASSWORD,
-            "database": MYSQL_DATABASE,
-            "charset": "utf8mb4",
-            "autocommit": False,
-        }
-        if os.getenv("MYSQL_SSL", "false").lower() in ("true", "1", "yes"):
-            kwargs["ssl"] = {"ca": None}
-        return pymysql.connect(**kwargs)
-    except Exception:
-        # Fallback to local SQLite database if MySQL (XAMPP/Cloud) is offline
+        db_kwargs = dict(kwargs)
+        db_kwargs["database"] = MYSQL_DATABASE
+        return pymysql.connect(**db_kwargs)
+    except Exception as err:
+        print(f"[WARN] MySQL connection failed ({err}). Falling back to SQLite.")
         sqlite_conn = sqlite3.connect(SQLITE_PATH)
         return SQLiteWrapperConnection(sqlite_conn)
 
