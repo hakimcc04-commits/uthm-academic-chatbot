@@ -44,6 +44,13 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
 )
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback, html
+    print("!!! UNHANDLED EXCEPTION IN APP !!!")
+    traceback.print_exc()
+    return f"<div style='font-family:monospace;padding:20px;background:#FEF2F2;color:#991B1B;'><h2>System Error (500)</h2><pre>{html.escape(traceback.format_exc())}</pre></div>", 500
+
 
 import json
 
