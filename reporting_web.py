@@ -248,12 +248,16 @@ def password_matches(stored_hash, password):
 
 
 def save_password(admin_id, password):
-    marker = placeholder()
-    connection, _ = database_connection()
-    cursor = connection.cursor()
-    cursor.execute(f"UPDATE Admin SET password = {marker} WHERE admin_id = {marker}", (generate_password_hash(password), admin_id))
-    connection.commit()
-    cursor.close()
+    try:
+        marker = placeholder()
+        connection, _ = database_connection()
+        cursor = connection.cursor()
+        hashed = generate_password_hash(password, method="pbkdf2:sha256")
+        cursor.execute(f"UPDATE Admin SET password = {marker} WHERE admin_id = {marker}", (hashed, admin_id))
+        connection.commit()
+        cursor.close()
+    except Exception as err:
+        print(f"[WARN] Could not update password hash: {err}")
 
 
 def smtp_is_configured():
