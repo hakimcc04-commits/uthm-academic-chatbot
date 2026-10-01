@@ -39,7 +39,7 @@ ANSWERED_STATUSES = {"answered", "auto_approved", "auto_approved_faq", "needs_cl
 
 app = Flask(__name__)
 app.config.update(
-    SECRET_KEY=os.getenv("REPORTING_SECRET_KEY", secrets.token_hex(32)),
+    SECRET_KEY=os.getenv("REPORTING_SECRET_KEY", "uthm_academic_analytics_secret_key_2026_fixed"),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )
@@ -75,18 +75,25 @@ def ensure_admin_security_schema(connection, engine):
         ("locked_until", "VARCHAR(50) NULL", "TEXT"),
     ]
     if engine == "mysql":
-        cursor.execute("SHOW COLUMNS FROM Admin")
-        columns = {row[0] for row in cursor.fetchall()}
-        for col_name, mysql_def, _ in schema_cols:
-            if col_name not in columns:
-                cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {mysql_def}")
+        try:
+            cursor.execute("SHOW COLUMNS FROM Admin")
+            columns = {row[0] for row in cursor.fetchall()}
+            for col_name, mysql_def, _ in schema_cols:
+                if col_name not in columns:
+                    cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {mysql_def}")
+            connection.commit()
+        except Exception as err:
+            print(f"[WARN] MySQL schema check error: {err}")
     else:
-        cursor.execute("PRAGMA table_info(Admin)")
-        columns = {row[1] for row in cursor.fetchall()}
-        for col_name, _, sqlite_def in schema_cols:
-            if col_name not in columns:
-                cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {sqlite_def}")
-    connection.commit()
+        try:
+            cursor.execute("PRAGMA table_info(Admin)")
+            columns = {row[1] for row in cursor.fetchall()}
+            for col_name, _, sqlite_def in schema_cols:
+                if col_name not in columns:
+                    cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {sqlite_def}")
+            connection.commit()
+        except Exception as err:
+            print(f"[WARN] SQLite schema check error: {err}")
     cursor.close()
 
 
