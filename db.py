@@ -87,17 +87,20 @@ def ensure_database():
 def connect_db():
     try:
         ensure_database()
-        return pymysql.connect(
-            host=MYSQL_HOST,
-            port=MYSQL_PORT,
-            user=MYSQL_USER,
-            password=MYSQL_PASSWORD,
-            database=MYSQL_DATABASE,
-            charset="utf8mb4",
-            autocommit=False,
-        )
+        kwargs = {
+            "host": MYSQL_HOST,
+            "port": MYSQL_PORT,
+            "user": MYSQL_USER,
+            "password": MYSQL_PASSWORD,
+            "database": MYSQL_DATABASE,
+            "charset": "utf8mb4",
+            "autocommit": False,
+        }
+        if os.getenv("MYSQL_SSL", "false").lower() in ("true", "1", "yes"):
+            kwargs["ssl"] = {"ca": None}
+        return pymysql.connect(**kwargs)
     except Exception:
-        # Fallback to local SQLite database if MySQL (XAMPP) is offline
+        # Fallback to local SQLite database if MySQL (XAMPP/Cloud) is offline
         sqlite_conn = sqlite3.connect(SQLITE_PATH)
         return SQLiteWrapperConnection(sqlite_conn)
 

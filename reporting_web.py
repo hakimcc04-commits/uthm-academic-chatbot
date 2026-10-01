@@ -261,7 +261,11 @@ def database_connection():
 
     try:
         connection = connect_db()
-        g.db_engine = "mysql"
+        if type(connection).__name__ == "SQLiteWrapperConnection" or hasattr(connection, "_conn"):
+            g.db_engine = "sqlite"
+            g.db_warning = "MySQL is offline. Dashboard is showing the local chatbot.db backup."
+        else:
+            g.db_engine = "mysql"
     except Exception as mysql_error:
         if not SQLITE_PATH.exists():
             raise RuntimeError("MySQL is unavailable and chatbot.db was not found.") from mysql_error
