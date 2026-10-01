@@ -525,10 +525,22 @@ def add_no_cache_headers(response):
     return response
 
 
+def get_dict_val(d, key, default=None):
+    if not d or not isinstance(d, dict):
+        return default
+    if key in d:
+        return d[key]
+    key_lower = str(key).lower()
+    for k, v in d.items():
+        if str(k).lower() == key_lower:
+            return v
+    return default
+
+
 def sign_in_admin(admin):
     session.clear()
-    session["admin_id"] = admin["admin_id"]
-    session["admin_name"] = admin["username"]
+    session["admin_id"] = get_dict_val(admin, "admin_id")
+    session["admin_name"] = get_dict_val(admin, "username")
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -549,15 +561,18 @@ def login():
                 flash(lock_msg, "error")
                 return render_template("login.html")
 
-            if password_matches(admin["password"], password):
-                reset_failed_attempts(admin["admin_id"])
-                if not str(admin["password"]).startswith(("scrypt:", "pbkdf2:")):
-                    save_password(admin["admin_id"], password)
+            admin_password = get_dict_val(admin, "password")
+            admin_id = get_dict_val(admin, "admin_id")
 
-                mfa_active = bool(admin.get("mfa_enabled") and admin.get("mfa_secret")) or bool(admin.get("email_mfa_enabled"))
+            if password_matches(admin_password, password):
+                reset_failed_attempts(admin_id)
+                if not str(admin_password or "").startswith(("scrypt:", "pbkdf2:")):
+                    save_password(admin_id, password)
+
+                mfa_active = bool(get_dict_val(admin, "mfa_enabled") and get_dict_val(admin, "mfa_secret")) or bool(get_dict_val(admin, "email_mfa_enabled"))
                 if mfa_active:
                     session.clear()
-                    session["mfa_pending_id"] = admin["admin_id"]
+                    session["mfa_pending_id"] = admin_id
                     return redirect(url_for("verify_mfa"))
 
                 sign_in_admin(admin)
