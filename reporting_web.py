@@ -49,6 +49,13 @@ import json
 
 def ensure_admin_security_schema(connection, engine):
     """Add security and MFA columns safely to an existing Admin table."""
+    try:
+        from database import create_tables, insert_default_admin
+        create_tables()
+        insert_default_admin()
+    except Exception as err:
+        print(f"[WARN] Error initializing base tables: {err}")
+
     cursor = connection.cursor()
     schema_cols = [
         ("mfa_secret", "VARCHAR(128) NULL", "TEXT"),
