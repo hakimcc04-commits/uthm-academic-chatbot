@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "[SYSTEM] Installing missing packages in container..."
+echo "[SYSTEM] Installing missing dependencies in Railway container..."
 pip install --no-cache-dir SpeechRecognition pydub
 
 echo "[SYSTEM] Starting UTHM Academic Telegram Bot background worker..."
