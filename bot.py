@@ -880,13 +880,18 @@ async def evaluate_award_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE
     await send_html(update, text, reply_markup=after_award_keyboard(), edit=edit)
 
 
-import speech_recognition as sr
-from pydub import AudioSegment
 from semantic_engine import semantic_engine
 
 async def handle_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE):
     voice = update.message.voice
     if not voice:
+        return
+
+    try:
+        import speech_recognition as sr
+        from pydub import AudioSegment
+    except ImportError:
+        await send_html(update, "🎙️ <i>Voice note processing is currently initializing on the server. Please type your query in text.</i>")
         return
 
     await send_html(update, "🎙️ <i>Processing your voice note... Please wait a moment.</i>")
@@ -903,6 +908,7 @@ async def handle_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sound.export(wav_path, format="wav")
 
         recognizer = sr.Recognizer()
+
         with sr.AudioFile(str(wav_path)) as source:
             audio_data = recognizer.record(source)
 
