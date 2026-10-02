@@ -407,20 +407,16 @@ def placeholder() -> str:
 
 
 def rows(sql: str, params=()):
-    connection, engine = database_connection()
-    cursor = connection.cursor()
     try:
+        connection, engine = database_connection()
+        cursor = connection.cursor()
         cursor.execute(sql, params)
         data = cursor.fetchall()
         desc = getattr(cursor, "description", None)
         cursor.close()
     except Exception as err:
-        print(f"[ERROR] SQL query failed: {sql} | Error: {err}", flush=True)
-        try:
-            cursor.close()
-        except Exception:
-            pass
-        raise
+        print(f"[WARN] SQL query failed: {sql} | Error: {err}", flush=True)
+        return []
 
     result = []
     for row in data:
@@ -442,8 +438,16 @@ def one(sql: str, params=(), default=None):
 
 
 def scalar(sql: str, params=(), default=0):
-    result = one(sql, params)
-    return next(iter(result.values())) if result else default
+    try:
+        result = one(sql, params)
+        if not result:
+            return default
+        if isinstance(result, dict):
+            val = next(iter(result.values()))
+            return val if val is not None else default
+        return result
+    except Exception:
+        return default
 
 
 def date_clause(period: str):
