@@ -53,7 +53,33 @@ def handle_exception(e):
         err_str = str(e)
     print("!!! UNHANDLED EXCEPTION IN APP !!!", flush=True)
     print(err_str, flush=True)
-    return f"<!DOCTYPE html><html><body><h2>System Error 500</h2><pre>{html.escape(err_str)}</pre></body></html>", 500
+@app.route("/debug-test")
+def debug_test():
+    info = []
+    try:
+        conn, engine = database_connection()
+        info.append(f"Engine: {engine}")
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SHOW TABLES")
+            tables = cursor.fetchall()
+            info.append(f"Tables in DB: {tables}")
+        except Exception as e:
+            info.append(f"SHOW TABLES error: {e}")
+
+        for tbl in ["Admin", "Student", "FAQ", "User_Query", "Chatbot_Response", "Reports"]:
+            try:
+                cursor.execute(f"SELECT COUNT(*) FROM `{tbl}`")
+                cnt = cursor.fetchone()
+                info.append(f"Table '{tbl}' count: {cnt}")
+            except Exception as e:
+                info.append(f"Table '{tbl}' error: {e}")
+
+        cursor.close()
+    except Exception as err:
+        import traceback
+        info.append(f"Connection error: {err}\n{traceback.format_exc()}")
+    return "<br>".join(str(x) for x in info)
 
 
 import json
