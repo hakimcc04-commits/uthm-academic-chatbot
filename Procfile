@@ -1,1 +1,1 @@
-web: bash start.sh
+web: gunicorn reporting_web:app
