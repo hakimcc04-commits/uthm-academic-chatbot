@@ -93,18 +93,30 @@ def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 def insert_default_admin():
-    conn = connect_db()
-    cursor = conn.cursor()
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
 
-    hashed_password = hash_password("admin123")
+        hashed_password = hash_password("admin123")
+        is_sqlite = type(conn).__name__ == "SQLiteWrapperConnection" or hasattr(conn, "_conn")
 
-    cursor.execute("""
-    INSERT IGNORE INTO Admin (username, password, email)
-    VALUES (%s, %s, %s)
-    """, ("admin", hashed_password, "admin@uthm.edu.my"))
+        if is_sqlite:
+            cursor.execute("""
+            INSERT OR REPLACE INTO Admin (admin_id, username, password, email, mfa_enabled, failed_attempts, locked_until)
+            VALUES (1, 'admin', %s, 'admin@uthm.edu.my', 0, 0, NULL)
+            """, (hashed_password,))
+        else:
+            cursor.execute("""
+            INSERT INTO Admin (username, password, email, mfa_enabled, failed_attempts, locked_until)
+            VALUES (%s, %s, %s, 0, 0, NULL)
+            ON DUPLICATE KEY UPDATE password = VALUES(password), mfa_enabled = 0, failed_attempts = 0, locked_until = NULL
+            """, ("admin", hashed_password, "admin@uthm.edu.my"))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as err:
+        print(f"[WARN] Could not seed default admin: {err}")
 
 
 def insert_sample_faq():
