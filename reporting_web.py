@@ -237,14 +237,20 @@ def password_error(password):
 
 def password_matches(stored_hash, password):
     """Allow legacy SHA-256 once, then replace it with a secure Werkzeug hash."""
-    stored_str = str(stored_hash or "")
+    while isinstance(stored_hash, dict):
+        stored_hash = get_dict_val(stored_hash, "password") or (next(iter(stored_hash.values())) if stored_hash else "")
+    
+    stored_str = str(stored_hash) if stored_hash is not None else ""
     if stored_str.startswith(("scrypt:", "pbkdf2:")):
         try:
             return check_password_hash(stored_str, password)
         except Exception:
             return False
     expected = hashlib.sha256(password.encode()).hexdigest()
-    return secrets.compare_digest(stored_str, expected)
+    try:
+        return secrets.compare_digest(stored_str, expected)
+    except Exception:
+        return stored_str == expected
 
 
 def save_password(admin_id, password):
