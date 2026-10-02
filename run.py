@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 # Ensure Telegram Bot worker is spawned cleanly
 def start_bot_worker():
-    if os.environ.get("BOT_STARTED") != "1":
+    if os.environ.get("RUN_BOT", "0") == "1" and os.environ.get("BOT_STARTED") != "1":
         os.environ["BOT_STARTED"] = "1"
         print("[SYSTEM] Starting UTHM Academic Telegram Bot background worker...")
         try:
