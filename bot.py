@@ -1489,10 +1489,47 @@ async def configure_bot_commands(app):
     )
 
 
+def start_health_check_server():
+    port_str = os.getenv("PORT")
+    if not port_str:
+        return
+    try:
+        port = int(port_str)
+    except ValueError:
+        return
+
+    import http.server
+    import socketserver
+    import threading
+
+    class HealthHandler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"OK - UTHM Academic Telegram Bot is active")
+
+        def log_message(self, format, *args):
+            pass
+
+    def run_server():
+        try:
+            server = socketserver.TCPServer(("0.0.0.0", port), HealthHandler)
+            print(f"[SYSTEM] Healthcheck HTTP server active on port {port}", flush=True)
+            server.serve_forever()
+        except Exception as err:
+            print(f"[WARNING] Healthcheck server error: {err}", flush=True)
+
+    t = threading.Thread(target=run_server, daemon=True)
+    t.start()
+
+
 def main():
     if BOT_TOKEN == "PASTE_YOUR_NEW_BOT_TOKEN_HERE":
         print("Please insert your new Telegram BotFather token in BOT_TOKEN.")
         return
+
+    start_health_check_server()
 
     request = HTTPXRequest(
         connect_timeout=60,
@@ -1530,4 +1567,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
