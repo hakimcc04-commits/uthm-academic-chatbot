@@ -658,44 +658,48 @@ def sign_in_admin(admin):
 
 @app.route("/", methods=["GET", "POST"])
 def login():
-    if "admin_id" in session:
-        return redirect("/dashboard")
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        marker = placeholder()
-        admin = one(
-            f"SELECT * FROM Admin WHERE username = {marker}",
-            (username,),
-        )
-        if admin:
-            lock_msg = check_lockout(admin)
-            if lock_msg:
-                flash(lock_msg, "error")
-                return render_template("login.html")
+    try:
+        if "admin_id" in session:
+            return redirect("/dashboard")
+        if request.method == "POST":
+            username = request.form.get("username", "").strip()
+            password = request.form.get("password", "")
+            marker = placeholder()
+            admin = one(
+                f"SELECT * FROM Admin WHERE username = {marker}",
+                (username,),
+            )
+            if admin:
+                lock_msg = check_lockout(admin)
+                if lock_msg:
+                    flash(lock_msg, "error")
+                    return render_template("login.html")
 
-            admin_password = get_dict_val(admin, "password")
-            admin_id = get_dict_val(admin, "admin_id")
+                admin_password = get_dict_val(admin, "password")
+                admin_id = get_dict_val(admin, "admin_id")
 
-            if password_matches(admin_password, password):
-                reset_failed_attempts(admin_id)
-                if not str(admin_password or "").startswith(("scrypt:", "pbkdf2:")):
-                    save_password(admin_id, password)
+                if password_matches(admin_password, password):
+                    reset_failed_attempts(admin_id)
+                    if not str(admin_password or "").startswith(("scrypt:", "pbkdf2:")):
+                        save_password(admin_id, password)
 
-                mfa_active = bool(get_dict_val(admin, "mfa_enabled") and get_dict_val(admin, "mfa_secret")) or bool(get_dict_val(admin, "email_mfa_enabled"))
-                if mfa_active:
-                    session.clear()
-                    session["mfa_pending_id"] = admin_id
-                    return redirect("/mfa")
+                    mfa_active = bool(get_dict_val(admin, "mfa_enabled") and get_dict_val(admin, "mfa_secret")) or bool(get_dict_val(admin, "email_mfa_enabled"))
+                    if mfa_active:
+                        session.clear()
+                        session["mfa_pending_id"] = admin_id
+                        return redirect("/mfa")
 
-                sign_in_admin(admin)
-                return redirect("/dashboard")
+                    sign_in_admin(admin)
+                    return redirect("/dashboard")
+                else:
+                    record_failed_attempt(admin_id)
+                    flash("Username or password is incorrect.", "error")
             else:
-                record_failed_attempt(admin_id)
                 flash("Username or password is incorrect.", "error")
-        else:
-            flash("Username or password is incorrect.", "error")
-    return render_template("login.html")
+        return render_template("login.html")
+    except Exception as e:
+        import traceback, html
+        return f"<h2>LOGIN EXCEPTION DETECTED: {html.escape(str(e))}</h2><pre>{html.escape(traceback.format_exc())}</pre>", 200
 
 
 @app.route("/mfa", endpoint="verify_mfa", methods=["GET", "POST"])
