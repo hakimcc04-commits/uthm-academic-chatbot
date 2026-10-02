@@ -13,15 +13,23 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 
 # Ensure Telegram Bot worker is spawned cleanly
+import threading
+
+def run_bot_in_thread():
+    try:
+        print("[SYSTEM] Starting UTHM Academic Telegram Bot background thread...", flush=True)
+        from bot import main as bot_main
+        bot_main()
+    except Exception as err:
+        print(f"[ERROR] Telegram bot background thread error: {err}", flush=True)
+
 def start_bot_worker():
-    if os.environ.get("RUN_BOT", "0") == "1" and os.environ.get("BOT_STARTED") != "1":
+    run_bot_val = str(os.environ.get("RUN_BOT", "0")).strip().lower()
+    if run_bot_val in ("1", "true", "yes", "on", "enabled") and os.environ.get("BOT_STARTED") != "1":
         os.environ["BOT_STARTED"] = "1"
-        print("[SYSTEM] Starting UTHM Academic Telegram Bot background worker...")
-        try:
-            subprocess.Popen([sys.executable, "bot.py"], cwd=BASE_DIR)
-            print("[SYSTEM] Telegram Bot background worker started successfully.")
-        except Exception as err:
-            print(f"[ERROR] Could not start Telegram bot worker: {err}")
+        t = threading.Thread(target=run_bot_in_thread, daemon=True)
+        t.start()
+        print("[SYSTEM] Telegram Bot background thread launched successfully.", flush=True)
 
 start_bot_worker()
 
