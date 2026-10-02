@@ -60,8 +60,8 @@ from ui import (
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-BANNER_PATH = BASE_DIR / "assets" / "welcome_banner.png"
-BOT_TOKEN = "8808466275:AAGYDm0fEoEPLhYM9ykOr-lnmYyCxl-E6ig"
+import os
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8808466275:AAGYDm0fEoEPLhYM9ykOr-lnmYyCxl-E6ig")
 
 QUICK_QUESTIONS = {
     "calendar": "academic calendar",
