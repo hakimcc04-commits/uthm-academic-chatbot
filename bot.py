@@ -59,9 +59,11 @@ from ui import (
     tuition_level_keyboard,
 )
 
+import os
 BASE_DIR = Path(__file__).resolve().parent
 raw_token = os.getenv("TELEGRAM_BOT_TOKEN")
 BOT_TOKEN = (raw_token if raw_token and raw_token.strip() else "8808466275:AAGYDm0fEoEPLhYM9ykOr-lnmYyCxl-E6ig").strip()
+
 
 
 QUICK_QUESTIONS = {

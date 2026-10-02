@@ -1,4 +1,7 @@
 #!/bin/bash
+echo "[SYSTEM] Installing missing packages in container..."
+pip install --no-cache-dir SpeechRecognition pydub
+
 echo "[SYSTEM] Starting UTHM Academic Telegram Bot background worker..."
 (python bot.py || python3 bot.py) &
 
