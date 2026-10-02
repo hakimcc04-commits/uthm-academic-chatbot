@@ -83,6 +83,7 @@ def connect_server():
         "password": MYSQL_PASSWORD,
         "charset": "utf8mb4",
         "autocommit": True,
+        "connect_timeout": 5,
     }
     if os.getenv("MYSQL_SSL", "false").lower() in ("true", "1", "yes"):
         kwargs["ssl"] = {"ca": None}
@@ -112,26 +113,30 @@ def connect_db():
         "password": MYSQL_PASSWORD,
         "charset": "utf8mb4",
         "autocommit": False,
+        "connect_timeout": 5,
     }
     if os.getenv("MYSQL_SSL", "false").lower() in ("true", "1", "yes"):
         kwargs["ssl"] = {"ca": None}
 
-    # 1. Try connecting directly to target database (ideal for Cloud MySQL like Aiven/Railway)
+    # 1. Try connecting directly to target database
     try:
-        db_kwargs = dict(kwargs)
-        db_kwargs["database"] = MYSQL_DATABASE
-        return pymysql.connect(**db_kwargs)
-    except Exception:
-        pass
-
-    # 2. Try creating database first (ideal for local XAMPP MySQL)
-    try:
-        ensure_database()
         db_kwargs = dict(kwargs)
         db_kwargs["database"] = MYSQL_DATABASE
         return pymysql.connect(**db_kwargs)
     except Exception as err:
-        print(f"[WARN] MySQL connection failed ({err}). Falling back to SQLite.")
-        sqlite_conn = sqlite3.connect(SQLITE_PATH)
-        return SQLiteWrapperConnection(sqlite_conn)
+        print(f"[WARN] Direct MySQL connection to '{MYSQL_DATABASE}' failed: {err}")
+
+    # 2. Try creating database first (only for local XAMPP MySQL)
+    if MYSQL_HOST in ("127.0.0.1", "localhost"):
+        try:
+            ensure_database()
+            db_kwargs = dict(kwargs)
+            db_kwargs["database"] = MYSQL_DATABASE
+            return pymysql.connect(**db_kwargs)
+        except Exception as err:
+            print(f"[WARN] Local MySQL creation failed: {err}")
+
+    print("[WARN] MySQL connection unavailable. Falling back to SQLite.")
+    sqlite_conn = sqlite3.connect(SQLITE_PATH)
+    return SQLiteWrapperConnection(sqlite_conn)
 
