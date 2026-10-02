@@ -74,35 +74,25 @@ def ensure_admin_security_schema(connection, engine):
         ("failed_attempts", "INT NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
         ("locked_until", "VARCHAR(50) NULL", "TEXT"),
     ]
-    if engine == "mysql":
+    for col_name, mysql_def, sqlite_def in schema_cols:
         try:
-            cursor.execute("SHOW COLUMNS FROM Admin")
-            columns = {row[0] for row in cursor.fetchall()}
-            for col_name, mysql_def, _ in schema_cols:
-                if col_name not in columns:
-                    cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {mysql_def}")
+            if engine == "mysql":
+                cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {mysql_def}")
+            else:
+                cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {sqlite_def}")
             connection.commit()
-        except Exception as err:
-            print(f"[WARN] MySQL schema check error: {err}")
-    else:
-        try:
-            cursor.execute("PRAGMA table_info(Admin)")
-            columns = {row[1] for row in cursor.fetchall()}
-            for col_name, _, sqlite_def in schema_cols:
-                if col_name not in columns:
-                    cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {sqlite_def}")
-            connection.commit()
-        except Exception as err:
-            print(f"[WARN] SQLite schema check error: {err}")
+        except Exception:
+            pass
     cursor.close()
 
 
 def check_lockout(admin):
     """Check if administrator account is temporarily locked out."""
-    if not admin or not admin.get("locked_until"):
+    locked_until = get_dict_val(admin, "locked_until")
+    if not admin or not locked_until:
         return None
     try:
-        lock_time = datetime.strptime(str(admin["locked_until"]), "%Y-%m-%d %H:%M:%S")
+        lock_time = datetime.strptime(str(locked_until), "%Y-%m-%d %H:%M:%S")
         if datetime.now() < lock_time:
             remaining = int((lock_time - datetime.now()).total_seconds() / 60) + 1
             return f"Account is temporarily locked due to 5 consecutive failed attempts. Try again in {remaining} minute(s)."
@@ -113,37 +103,43 @@ def check_lockout(admin):
 
 def record_failed_attempt(admin_id):
     """Increment failed login/MFA attempts and lock for 15 minutes after 5 failures."""
-    connection, engine = database_connection()
-    cursor = connection.cursor()
-    marker = placeholder()
-    admin = one(f"SELECT failed_attempts FROM Admin WHERE admin_id = {marker}", (admin_id,))
-    attempts = (admin.get("failed_attempts") or 0) + 1 if admin else 1
-    if attempts >= 5:
-        lock_until = (datetime.now() + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
-        cursor.execute(
-            f"UPDATE Admin SET failed_attempts = {marker}, locked_until = {marker} WHERE admin_id = {marker}",
-            (attempts, lock_until, admin_id)
-        )
-    else:
-        cursor.execute(
-            f"UPDATE Admin SET failed_attempts = {marker} WHERE admin_id = {marker}",
-            (attempts, admin_id)
-        )
-    connection.commit()
-    cursor.close()
+    try:
+        connection, engine = database_connection()
+        cursor = connection.cursor()
+        marker = placeholder()
+        admin = one(f"SELECT failed_attempts FROM Admin WHERE admin_id = {marker}", (admin_id,))
+        attempts = (get_dict_val(admin, "failed_attempts") or 0) + 1 if admin else 1
+        if attempts >= 5:
+            lock_until = (datetime.now() + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute(
+                f"UPDATE Admin SET failed_attempts = {marker}, locked_until = {marker} WHERE admin_id = {marker}",
+                (attempts, lock_until, admin_id)
+            )
+        else:
+            cursor.execute(
+                f"UPDATE Admin SET failed_attempts = {marker} WHERE admin_id = {marker}",
+                (attempts, admin_id)
+            )
+        connection.commit()
+        cursor.close()
+    except Exception as err:
+        print(f"[WARN] Error recording failed attempt: {err}")
 
 
 def reset_failed_attempts(admin_id):
     """Reset failed login/MFA attempts counter on successful login."""
-    connection, _ = database_connection()
-    cursor = connection.cursor()
-    marker = placeholder()
-    cursor.execute(
-        f"UPDATE Admin SET failed_attempts = 0, locked_until = NULL WHERE admin_id = {marker}",
-        (admin_id,)
-    )
-    connection.commit()
-    cursor.close()
+    try:
+        connection, _ = database_connection()
+        cursor = connection.cursor()
+        marker = placeholder()
+        cursor.execute(
+            f"UPDATE Admin SET failed_attempts = 0, locked_until = NULL WHERE admin_id = {marker}",
+            (admin_id,)
+        )
+        connection.commit()
+        cursor.close()
+    except Exception as err:
+        print(f"[WARN] Error resetting failed attempts: {err}")
 
 
 def generate_backup_codes():

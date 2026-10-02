@@ -15,7 +15,15 @@ def create_tables():
         admin_id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(100) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
-        email VARCHAR(255)
+        email VARCHAR(255),
+        mfa_secret VARCHAR(128) NULL,
+        mfa_enabled TINYINT(1) NOT NULL DEFAULT 0,
+        email_mfa_enabled TINYINT(1) NOT NULL DEFAULT 0,
+        email_otp VARCHAR(128) NULL,
+        email_otp_expires VARCHAR(50) NULL,
+        backup_codes TEXT NULL,
+        failed_attempts INT NOT NULL DEFAULT 0,
+        locked_until VARCHAR(50) NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
 
