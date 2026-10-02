@@ -321,9 +321,19 @@ def rows(sql: str, params=()):
     cursor = connection.cursor()
     cursor.execute(sql, params)
     data = cursor.fetchall()
-    columns = [str(column[0]).lower() for column in cursor.description] if cursor.description else []
+    desc = cursor.description
     cursor.close()
-    return [dict(zip(columns, row)) for row in data]
+
+    result = []
+    for row in data:
+        if isinstance(row, dict):
+            result.append({str(k).lower(): v for k, v in row.items()})
+        elif desc:
+            columns = [str(col[0]).lower() for col in desc]
+            result.append(dict(zip(columns, row)))
+        else:
+            result.append(row)
+    return result
 
 
 def one(sql: str, params=(), default=None):
@@ -535,8 +545,15 @@ def get_dict_val(d, key, default=None):
 
 def sign_in_admin(admin):
     session.clear()
-    session["admin_id"] = get_dict_val(admin, "admin_id")
-    session["admin_name"] = get_dict_val(admin, "username")
+    val_id = get_dict_val(admin, "admin_id")
+    if isinstance(val_id, dict):
+        val_id = get_dict_val(val_id, "admin_id")
+    session["admin_id"] = str(val_id) if val_id is not None else "1"
+
+    val_name = get_dict_val(admin, "username")
+    if isinstance(val_name, dict):
+        val_name = get_dict_val(val_name, "username")
+    session["admin_name"] = str(val_name) if val_name is not None else "Admin"
 
 
 @app.route("/", methods=["GET", "POST"])
