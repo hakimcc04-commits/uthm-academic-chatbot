@@ -574,14 +574,14 @@ def login():
                 sign_in_admin(admin)
                 return redirect(url_for("dashboard"))
             else:
-                record_failed_attempt(admin["admin_id"])
+                record_failed_attempt(admin_id)
                 flash("Username or password is incorrect.", "error")
         else:
             flash("Username or password is incorrect.", "error")
     return render_template("login.html")
 
 
-@app.route("/mfa", methods=["GET", "POST"])
+@app.route("/mfa", endpoint="verify_mfa", methods=["GET", "POST"])
 def verify_mfa():
     admin_id = session.get("mfa_pending_id")
     if not admin_id:
@@ -605,60 +605,62 @@ def verify_mfa():
         action = request.form.get("action", "verify_totp")
 
         if action == "send_email_otp":
-            success, msg = send_mfa_email_otp(admin["admin_id"], admin.get("email"))
+            success, msg = send_mfa_email_otp(get_dict_val(admin, "admin_id"), get_dict_val(admin, "email"))
             flash(msg, "info" if success else "error")
             return render_template("mfa_verify.html", admin=admin, active_tab="email")
 
         elif action == "verify_email_otp":
             code = request.form.get("code", "").replace(" ", "")
             hashed_code = hashlib.sha256(code.encode()).hexdigest()
-            otp_expires = admin.get("email_otp_expires")
+            otp_expires = get_dict_val(admin, "email_otp_expires")
+            email_otp = get_dict_val(admin, "email_otp")
 
             is_valid = False
-            if admin.get("email_otp") and otp_expires:
+            if email_otp and otp_expires:
                 try:
                     exp_time = datetime.strptime(str(otp_expires), "%Y-%m-%d %H:%M:%S")
-                    if datetime.now() <= exp_time and secrets.compare_digest(admin["email_otp"], hashed_code):
+                    if datetime.now() <= exp_time and secrets.compare_digest(email_otp, hashed_code):
                         is_valid = True
                 except Exception:
                     pass
 
             if is_valid:
-                reset_failed_attempts(admin["admin_id"])
+                reset_failed_attempts(get_dict_val(admin, "admin_id"))
                 sign_in_admin(admin)
                 return redirect(url_for("dashboard"))
             else:
-                record_failed_attempt(admin["admin_id"])
+                record_failed_attempt(get_dict_val(admin, "admin_id"))
                 flash("The email OTP code is invalid or has expired.", "error")
                 return render_template("mfa_verify.html", admin=admin, active_tab="email")
 
         elif action == "verify_backup_code":
             code = request.form.get("backup_code", "").replace(" ", "")
-            if verify_and_burn_backup_code(admin["admin_id"], code):
-                reset_failed_attempts(admin["admin_id"])
+            if verify_and_burn_backup_code(get_dict_val(admin, "admin_id"), code):
+                reset_failed_attempts(get_dict_val(admin, "admin_id"))
                 flash("Emergency backup code used successfully.", "warning")
                 sign_in_admin(admin)
                 return redirect(url_for("dashboard"))
             else:
-                record_failed_attempt(admin["admin_id"])
+                record_failed_attempt(get_dict_val(admin, "admin_id"))
                 flash("Invalid or already used backup recovery code.", "error")
                 return render_template("mfa_verify.html", admin=admin, active_tab="backup")
 
         else:
             code = request.form.get("code", "").replace(" ", "")
-            if admin.get("mfa_secret") and pyotp.TOTP(admin["mfa_secret"]).verify(code, valid_window=1):
-                reset_failed_attempts(admin["admin_id"])
+            mfa_secret = get_dict_val(admin, "mfa_secret")
+            if mfa_secret and pyotp.TOTP(mfa_secret).verify(code, valid_window=1):
+                reset_failed_attempts(get_dict_val(admin, "admin_id"))
                 sign_in_admin(admin)
                 return redirect(url_for("dashboard"))
             else:
-                record_failed_attempt(admin["admin_id"])
+                record_failed_attempt(get_dict_val(admin, "admin_id"))
                 flash("That authenticator code is invalid or has expired.", "error")
                 return render_template("mfa_verify.html", admin=admin, active_tab="totp")
 
     return render_template("mfa_verify.html", admin=admin, active_tab="totp")
 
 
-@app.route("/dashboard")
+@app.route("/dashboard", endpoint="dashboard")
 @login_required
 def dashboard():
     period = request.args.get("period", "30d")
