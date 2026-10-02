@@ -44,12 +44,16 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
 )
 
+@app.errorhandler(500)
 @app.errorhandler(Exception)
 def handle_exception(e):
     import traceback, html
-    print("!!! UNHANDLED EXCEPTION IN APP !!!")
-    traceback.print_exc()
-    return f"<div style='font-family:monospace;padding:20px;background:#FEF2F2;color:#991B1B;'><h2>System Error (500)</h2><pre>{html.escape(traceback.format_exc())}</pre></div>", 500
+    err_str = traceback.format_exc()
+    if not err_str or "NoneType: None" in err_str:
+        err_str = str(e)
+    print("!!! UNHANDLED EXCEPTION IN APP !!!", flush=True)
+    print(err_str, flush=True)
+    return f"<!DOCTYPE html><html><body><h2>System Error 500</h2><pre>{html.escape(err_str)}</pre></body></html>", 500
 
 
 import json
