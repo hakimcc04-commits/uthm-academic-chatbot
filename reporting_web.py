@@ -53,6 +53,9 @@ def handle_exception(e):
         err_str = str(e)
     print("!!! UNHANDLED EXCEPTION IN APP !!!", flush=True)
     print(err_str, flush=True)
+    return f"<!DOCTYPE html><html><body><h2>System Error 500</h2><pre>{html.escape(err_str)}</pre></body></html>", 500
+
+
 @app.route("/debug-test")
 def debug_test():
     info = []
