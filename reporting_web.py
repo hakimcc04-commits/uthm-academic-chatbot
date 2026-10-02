@@ -488,7 +488,7 @@ def login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if "admin_id" not in session:
-            return redirect(url_for("login"))
+            return redirect("/")
         return view(*args, **kwargs)
     return wrapped
 
@@ -542,7 +542,7 @@ def sign_in_admin(admin):
 @app.route("/", methods=["GET", "POST"])
 def login():
     if "admin_id" in session:
-        return redirect(url_for("dashboard"))
+        return redirect("/dashboard")
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
@@ -569,10 +569,10 @@ def login():
                 if mfa_active:
                     session.clear()
                     session["mfa_pending_id"] = admin_id
-                    return redirect(url_for("verify_mfa"))
+                    return redirect("/mfa")
 
                 sign_in_admin(admin)
-                return redirect(url_for("dashboard"))
+                return redirect("/dashboard")
             else:
                 record_failed_attempt(admin_id)
                 flash("Username or password is incorrect.", "error")
@@ -585,7 +585,7 @@ def login():
 def verify_mfa():
     admin_id = session.get("mfa_pending_id")
     if not admin_id:
-        return redirect(url_for("login"))
+        return redirect("/")
 
     marker = placeholder()
     admin = one(
@@ -594,7 +594,7 @@ def verify_mfa():
     )
     if not admin:
         session.clear()
-        return redirect(url_for("login"))
+        return redirect("/")
 
     lock_msg = check_lockout(admin)
     if lock_msg:
@@ -627,7 +627,7 @@ def verify_mfa():
             if is_valid:
                 reset_failed_attempts(get_dict_val(admin, "admin_id"))
                 sign_in_admin(admin)
-                return redirect(url_for("dashboard"))
+                return redirect("/dashboard")
             else:
                 record_failed_attempt(get_dict_val(admin, "admin_id"))
                 flash("The email OTP code is invalid or has expired.", "error")
@@ -639,7 +639,7 @@ def verify_mfa():
                 reset_failed_attempts(get_dict_val(admin, "admin_id"))
                 flash("Emergency backup code used successfully.", "warning")
                 sign_in_admin(admin)
-                return redirect(url_for("dashboard"))
+                return redirect("/dashboard")
             else:
                 record_failed_attempt(get_dict_val(admin, "admin_id"))
                 flash("Invalid or already used backup recovery code.", "error")
@@ -651,7 +651,7 @@ def verify_mfa():
             if mfa_secret and pyotp.TOTP(mfa_secret).verify(code, valid_window=1):
                 reset_failed_attempts(get_dict_val(admin, "admin_id"))
                 sign_in_admin(admin)
-                return redirect(url_for("dashboard"))
+                return redirect("/dashboard")
             else:
                 record_failed_attempt(get_dict_val(admin, "admin_id"))
                 flash("That authenticator code is invalid or has expired.", "error")
