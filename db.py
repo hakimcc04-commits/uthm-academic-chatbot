@@ -106,37 +106,25 @@ def ensure_database():
 
 
 def connect_db():
-    kwargs = {
-        "host": MYSQL_HOST,
-        "port": MYSQL_PORT,
-        "user": MYSQL_USER,
-        "password": MYSQL_PASSWORD,
-        "charset": "utf8mb4",
-        "autocommit": False,
-        "connect_timeout": 5,
-    }
-    if os.getenv("MYSQL_SSL", "false").lower() in ("true", "1", "yes"):
-        kwargs["ssl"] = {"ca": None}
-
-    # 1. Try connecting directly to target database
     try:
+        kwargs = {
+            "host": MYSQL_HOST,
+            "port": MYSQL_PORT,
+            "user": MYSQL_USER,
+            "password": MYSQL_PASSWORD,
+            "charset": "utf8mb4",
+            "autocommit": False,
+            "connect_timeout": 3,
+        }
+        if os.getenv("MYSQL_SSL", "false").lower() in ("true", "1", "yes"):
+            kwargs["ssl"] = {"ca": None}
+
         db_kwargs = dict(kwargs)
         db_kwargs["database"] = MYSQL_DATABASE
         return pymysql.connect(**db_kwargs)
     except Exception as err:
-        print(f"[WARN] Direct MySQL connection to '{MYSQL_DATABASE}' failed: {err}")
+        print(f"[WARN] MySQL connection unavailable ({err}). Falling back to SQLite.", flush=True)
 
-    # 2. Try creating database first (only for local XAMPP MySQL)
-    if MYSQL_HOST in ("127.0.0.1", "localhost"):
-        try:
-            ensure_database()
-            db_kwargs = dict(kwargs)
-            db_kwargs["database"] = MYSQL_DATABASE
-            return pymysql.connect(**db_kwargs)
-        except Exception as err:
-            print(f"[WARN] Local MySQL creation failed: {err}")
-
-    print("[WARN] MySQL connection unavailable. Falling back to SQLite.")
     sqlite_conn = sqlite3.connect(SQLITE_PATH)
     return SQLiteWrapperConnection(sqlite_conn)
 
