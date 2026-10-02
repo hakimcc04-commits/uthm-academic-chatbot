@@ -380,10 +380,18 @@ def placeholder() -> str:
 def rows(sql: str, params=()):
     connection, engine = database_connection()
     cursor = connection.cursor()
-    cursor.execute(sql, params)
-    data = cursor.fetchall()
-    desc = getattr(cursor, "description", None)
-    cursor.close()
+    try:
+        cursor.execute(sql, params)
+        data = cursor.fetchall()
+        desc = getattr(cursor, "description", None)
+        cursor.close()
+    except Exception as err:
+        print(f"[ERROR] SQL query failed: {sql} | Error: {err}", flush=True)
+        try:
+            cursor.close()
+        except Exception:
+            pass
+        raise
 
     result = []
     for row in data:
@@ -628,7 +636,7 @@ def login():
         password = request.form.get("password", "")
         marker = placeholder()
         admin = one(
-            f"SELECT admin_id, username, password, email, mfa_enabled, mfa_secret, email_mfa_enabled, locked_until, failed_attempts FROM Admin WHERE username = {marker}",
+            f"SELECT * FROM Admin WHERE username = {marker}",
             (username,),
         )
         if admin:
@@ -669,7 +677,7 @@ def verify_mfa():
 
     marker = placeholder()
     admin = one(
-        f"SELECT admin_id, username, email, mfa_secret, mfa_enabled, email_mfa_enabled, email_otp, email_otp_expires, backup_codes, locked_until, failed_attempts FROM Admin WHERE admin_id = {marker}",
+        f"SELECT * FROM Admin WHERE admin_id = {marker}",
         (admin_id,)
     )
     if not admin:
