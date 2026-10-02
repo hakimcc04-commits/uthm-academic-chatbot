@@ -347,13 +347,15 @@ def rows(sql: str, params=()):
     cursor = connection.cursor()
     cursor.execute(sql, params)
     data = cursor.fetchall()
-    desc = cursor.description
+    desc = getattr(cursor, "description", None)
     cursor.close()
 
     result = []
     for row in data:
         if isinstance(row, dict):
             result.append({str(k).lower(): v for k, v in row.items()})
+        elif hasattr(row, "keys"):
+            result.append({str(k).lower(): row[k] for k in row.keys()})
         elif desc:
             columns = [str(col[0]).lower() for col in desc]
             result.append(dict(zip(columns, row)))

@@ -19,16 +19,29 @@ class SQLiteWrapperCursor:
         self._cursor = cursor
         self.lastrowid = None
 
-    def execute(self, sql, params=()):
+    @property
+    def description(self):
+        return getattr(self._cursor, "description", None)
+
+    def _clean_sql(self, sql):
         sql_sqlite = sql.replace("%s", "?").replace("INSERT IGNORE", "INSERT OR IGNORE")
+        if "ENGINE=" in sql_sqlite.upper():
+            import re
+            sql_sqlite = re.sub(r"ENGINE=\w+\s*(DEFAULT\s+CHARSET=\w+)?", "", sql_sqlite, flags=re.IGNORECASE)
+        sql_sqlite = sql_sqlite.replace("INT AUTO_INCREMENT PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
+        sql_sqlite = sql_sqlite.replace("AUTO_INCREMENT PRIMARY KEY", "PRIMARY KEY AUTOINCREMENT")
+        return sql_sqlite
+
+    def execute(self, sql, params=()):
+        sql_sqlite = self._clean_sql(sql)
         res = self._cursor.execute(sql_sqlite, params)
-        self.lastrowid = self._cursor.lastrowid
+        self.lastrowid = getattr(self._cursor, "lastrowid", None)
         return res
 
     def executemany(self, sql, seq_params):
-        sql_sqlite = sql.replace("%s", "?").replace("INSERT IGNORE", "INSERT OR IGNORE")
+        sql_sqlite = self._clean_sql(sql)
         res = self._cursor.executemany(sql_sqlite, seq_params)
-        self.lastrowid = self._cursor.lastrowid
+        self.lastrowid = getattr(self._cursor, "lastrowid", None)
         return res
 
     def fetchone(self):
@@ -50,6 +63,7 @@ class SQLiteWrapperCursor:
 class SQLiteWrapperConnection:
     def __init__(self, sqlite_conn):
         self._conn = sqlite_conn
+        self._conn.row_factory = sqlite3.Row
 
     def cursor(self):
         return SQLiteWrapperCursor(self._conn.cursor())
