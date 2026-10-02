@@ -3,12 +3,15 @@ import sqlite3
 from pathlib import Path
 import pymysql
 
-# Default XAMPP / phpMyAdmin login. Override with environment variables if needed.
-MYSQL_HOST = os.getenv("MYSQL_HOST", "127.0.0.1")
-MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
-MYSQL_USER = os.getenv("MYSQL_USER", "root")
-MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
-MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "academic_chatbot")
+MYSQL_HOST = os.getenv("MYSQL_HOST") or "127.0.0.1"
+raw_port = (os.getenv("MYSQL_PORT") or "3306").strip()
+try:
+    MYSQL_PORT = int(raw_port) if raw_port.isdigit() else 3306
+except Exception:
+    MYSQL_PORT = 3306
+MYSQL_USER = os.getenv("MYSQL_USER") or "root"
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD") or ""
+MYSQL_DATABASE = os.getenv("MYSQL_DATABASE") or "academic_chatbot"
 
 BASE_DIR = Path(__file__).resolve().parent
 SQLITE_PATH = BASE_DIR / "chatbot.db"
