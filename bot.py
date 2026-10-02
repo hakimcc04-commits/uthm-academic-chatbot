@@ -1521,9 +1521,13 @@ def main():
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice_note))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_question))
-    print("Chatbot is running...")
-    app.run_polling()
+    print("[SYSTEM] UTHM Academic Telegram Bot is running 24/7...", flush=True)
+    try:
+        app.run_polling(drop_pending_updates=True)
+    except ValueError:
+        app.run_polling(drop_pending_updates=True, stop_signals=None)
 
 
 if __name__ == "__main__":
     main()
+
