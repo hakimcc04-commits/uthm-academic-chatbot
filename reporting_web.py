@@ -788,9 +788,9 @@ def verify_mfa():
 @app.route("/dashboard", endpoint="dashboard")
 @login_required
 def dashboard():
-    period = request.args.get("period", "30d")
+    period = request.args.get("period", "all")
     if period not in {"7d", "30d", "90d", "all"}:
-        period = "30d"
+        period = "all"
     metrics = query_metrics(period)
     data = chart_data(period)
     return render_template(
@@ -810,7 +810,7 @@ def dashboard():
 @app.route("/export.csv")
 @login_required
 def export_csv():
-    period = request.args.get("period", "30d")
+    period = request.args.get("period", "all")
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["Query ID", "Question", "Intent", "Status", "Date"])
@@ -827,9 +827,9 @@ def export_csv():
 @app.route("/export.pdf")
 @login_required
 def export_pdf():
-    period = request.args.get("period", "30d")
+    period = request.args.get("period", "all")
     if period not in {"7d", "30d", "90d", "all"}:
-        period = "30d"
+        period = "all"
     filename = f"academic_chatbot_report_{period}_{datetime.now():%Y%m%d}.pdf"
     return Response(build_pdf_report(period), mimetype="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
 
