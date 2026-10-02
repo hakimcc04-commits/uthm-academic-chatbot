@@ -235,12 +235,32 @@ def password_error(password):
     return None
 
 
+def to_clean_str(val) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val
+    if isinstance(val, (bytes, bytearray)):
+        return val.decode("utf-8", errors="ignore")
+    if hasattr(val, "items") or hasattr(val, "values"):
+        try:
+            if hasattr(val, "items"):
+                for k, v in val.items():
+                    if str(k).lower() == "password":
+                        return to_clean_str(v)
+            if hasattr(val, "values"):
+                for v in val.values():
+                    res = to_clean_str(v)
+                    if res:
+                        return res
+        except Exception:
+            pass
+    return str(val)
+
+
 def password_matches(stored_hash, password):
     """Allow legacy SHA-256 once, then replace it with a secure Werkzeug hash."""
-    while isinstance(stored_hash, dict):
-        stored_hash = get_dict_val(stored_hash, "password") or (next(iter(stored_hash.values())) if stored_hash else "")
-    
-    stored_str = str(stored_hash) if stored_hash is not None else ""
+    stored_str = to_clean_str(stored_hash)
     if stored_str.startswith(("scrypt:", "pbkdf2:")):
         try:
             return check_password_hash(stored_str, password)
