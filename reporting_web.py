@@ -63,27 +63,58 @@ def ensure_admin_security_schema(connection, engine):
     except Exception as err:
         print(f"[WARN] Error initializing base tables: {err}")
 
-    cursor = connection.cursor()
-    schema_cols = [
-        ("mfa_secret", "VARCHAR(128) NULL", "TEXT"),
-        ("mfa_enabled", "TINYINT(1) NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
-        ("email_mfa_enabled", "TINYINT(1) NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
-        ("email_otp", "VARCHAR(128) NULL", "TEXT"),
-        ("email_otp_expires", "VARCHAR(50) NULL", "TEXT"),
-        ("backup_codes", "TEXT NULL", "TEXT"),
-        ("failed_attempts", "INT NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
-        ("locked_until", "VARCHAR(50) NULL", "TEXT"),
-    ]
-    for col_name, mysql_def, sqlite_def in schema_cols:
+    try:
+        cursor = connection.cursor()
+        existing_cols = set()
         try:
             if engine == "mysql":
-                cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {mysql_def}")
+                cursor.execute("SHOW COLUMNS FROM Admin")
+                cols_data = cursor.fetchall()
+                for c in cols_data:
+                    if isinstance(c, dict):
+                        existing_cols.add(str(c.get("Field", "")).lower())
+                    elif isinstance(c, (tuple, list)):
+                        existing_cols.add(str(c[0]).lower())
             else:
-                cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {sqlite_def}")
-            connection.commit()
-        except Exception:
-            pass
-    cursor.close()
+                cursor.execute("PRAGMA table_info(Admin)")
+                cols_data = cursor.fetchall()
+                for c in cols_data:
+                    if isinstance(c, dict):
+                        existing_cols.add(str(c.get("name", "")).lower())
+                    elif hasattr(c, "keys"):
+                        existing_cols.add(str(c["name"]).lower())
+                    elif isinstance(c, (tuple, list)) and len(c) > 1:
+                        existing_cols.add(str(c[1]).lower())
+        except Exception as err:
+            print(f"[WARN] Could not inspect Admin table columns: {err}")
+
+        schema_cols = [
+            ("mfa_secret", "VARCHAR(128) NULL", "TEXT"),
+            ("mfa_enabled", "TINYINT(1) NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
+            ("email_mfa_enabled", "TINYINT(1) NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
+            ("email_otp", "VARCHAR(128) NULL", "TEXT"),
+            ("email_otp_expires", "VARCHAR(50) NULL", "TEXT"),
+            ("backup_codes", "TEXT NULL", "TEXT"),
+            ("failed_attempts", "INT NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
+            ("locked_until", "VARCHAR(50) NULL", "TEXT"),
+        ]
+        for col_name, mysql_def, sqlite_def in schema_cols:
+            if col_name.lower() in existing_cols:
+                continue
+            try:
+                if engine == "mysql":
+                    cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {mysql_def}")
+                else:
+                    cursor.execute(f"ALTER TABLE Admin ADD COLUMN {col_name} {sqlite_def}")
+                connection.commit()
+            except Exception:
+                try:
+                    connection.rollback()
+                except Exception:
+                    pass
+        cursor.close()
+    except Exception as err:
+        print(f"[WARN] Security schema setup error: {err}")
 
 
 def check_lockout(admin):
