@@ -494,7 +494,7 @@ def query_metrics(period: str):
         "volume_trend": "+12.4%" if total > 0 else "0%",
         "status_totals": status_totals,
         "ai_engine": "Google Gemini 3.5 Flash + RAG Architecture",
-        "ai_status": "Active & Operational (🟢 Online)",
+        "ai_status": "Active & Operational (Online)",
         "avg_latency": "0.05s (Local Hybrid) / 3.10s (Gemini RAG)",
         "nlu_accuracy": "100.0% (Malay Slang & Informal Text Understanding)"
     }
