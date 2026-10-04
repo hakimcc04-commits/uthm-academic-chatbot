@@ -61,9 +61,14 @@ from ui import (
 
 import os
 BASE_DIR = Path(__file__).resolve().parent
-raw_token = os.getenv("TELEGRAM_BOT_TOKEN")
-BOT_TOKEN = (raw_token if raw_token and raw_token.strip() else "8808466275:AAGYDm0fEoEPLhYM9ykOr-lnmYyCxl-E6ig").strip()
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 BANNER_PATH = BASE_DIR / "assets" / "welcome_banner.png"
+
+if not BOT_TOKEN:
+    print("[ERROR] TELEGRAM_BOT_TOKEN environment variable is not set! Please set it before running.", flush=True)
+    import sys
+    sys.exit(1)
+
 
 
 
