@@ -1488,6 +1488,18 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def configure_bot_commands(app):
     """Set the concise command menu shown by Telegram beside the message box."""
+    # Restore correct bot description on every startup
+    await app.bot.set_my_description(
+        description=(
+            "Pembantu AI Akademik Rasmi UTHM. Dapatkan maklumat tentang "
+            "kalendar akademik, yuran pengajian, borang, peraturan akademik, "
+            "anugerah pelajar, dan soalan lazim (FAQ) PPA UTHM. "
+            "Taip soalan anda atau gunakan butang menu."
+        )
+    )
+    await app.bot.set_my_short_description(
+        short_description="Pembantu AI Akademik Rasmi UTHM oleh PPA UTHM. Maklumat yuran, borang, peraturan & FAQ."
+    )
     await app.bot.set_my_commands(
         [
             BotCommand("start", "Start the academic assistant"),
@@ -1498,6 +1510,7 @@ async def configure_bot_commands(app):
             BotCommand("diagrams", "Visual Academic Procedure Flowcharts"),
             BotCommand("calculator", "GPA / CGPA Target Calculator"),
             BotCommand("countdown", "Academic Calendar Countdown"),
+
             BotCommand("documents", "Browse academic documents"),
             BotCommand("fees", "View tuition fees"),
             BotCommand("faq", "Browse frequently asked questions"),
