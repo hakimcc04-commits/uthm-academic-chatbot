@@ -705,19 +705,28 @@ async def show_regulation_detail(update: Update, context: ContextTypes.DEFAULT_T
             "  - Selipar dan sandal <b>DILARANG SAMA SEKALI</b>. Wajib kasut bertutup dan berstoking.\n\n"
             "• <b>Pelajar Lelaki:</b> Rambut kemas dan pendek (tidak mencecah kolar/telinga/kening). Jambang dan janggut sentiasa kemas.\n"
             "• <b>Pelajar Perempuan:</b> Baju kurung/sopan, kain melepasi lutut. Berpurdah/niqab tidak dibenarkan semasa proses pengecaman identiti.\n\n"
+            "• <b>Larangan Utama:</b> Selipar/sandal, tatu pada anggota badan, mewarnakan rambut dengan warna menyala, t-shirt tanpa kolar/tanpa lengan semasa urusan rasmi, skirt mini/ketat.\n\n"
             "• <b>Tindakan Pelanggaran:</b> Amaran bagi kesalahan pertama, <b>Denda RM50.00</b> bagi kesalahan kedua dan seterusnya serta direkodkan dalam SMAP.\n\n"
             "<i>Sumber Rasmi: HEPA UTHM • Poster Peraturan Etika Berpakaian Pelajar UTHM</i>"
         )
+        if edit and update.callback_query and update.callback_query.message:
+            try:
+                await update.callback_query.message.delete()
+            except Exception:
+                pass
+
         if DRESS_CODE_POSTER_PATH.exists():
-            with DRESS_CODE_POSTER_PATH.open("rb") as f:
-                await message_target(update).reply_photo(
-                    photo=f,
-                    caption=dress_code_text,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=after_regulation_keyboard()
-                )
-            return
-        await send_html(update, dress_code_text, reply_markup=after_regulation_keyboard(), edit=edit)
+            try:
+                with DRESS_CODE_POSTER_PATH.open("rb") as f:
+                    await message_target(update).reply_photo(
+                        photo=f,
+                        caption="📌 <b>Poster Rasmi: Peraturan Etika Berpakaian & Sahsiah Rupa Diri Pelajar UTHM</b>",
+                        parse_mode=ParseMode.HTML,
+                    )
+            except Exception as e:
+                print(f"[ERROR] Failed to send dress code poster photo: {e}", flush=True)
+
+        await send_html(update, dress_code_text, reply_markup=after_regulation_keyboard(), edit=False)
         return
 
     text = details.get(topic, "Information not available.")
