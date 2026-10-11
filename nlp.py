@@ -333,9 +333,9 @@ EXACT_QUESTION_MAP = {
     for _, row in df.iterrows()
 }
 
-DATASET_MATCH_THRESHOLD = 0.65
-MODEL_CONFIDENCE_THRESHOLD = 0.45
-SUGGESTION_MATCH_THRESHOLD = 0.45
+DATASET_MATCH_THRESHOLD = 0.85
+MODEL_CONFIDENCE_THRESHOLD = 0.55
+SUGGESTION_MATCH_THRESHOLD = 0.55
 
 ACADEMIC_KEYWORDS = {
     "akademik", "academic", "kursus", "course", "subjek", "subject",
@@ -346,7 +346,10 @@ ACADEMIC_KEYWORDS = {
     "form", "sijil", "certificate", "transkrip", "transcript", "surat",
     "pengesahan", "verification", "pengajian", "semester", "kaunter",
     "counter", "kemasukan", "admission", "program", "kuliah", "lecture",
-    "senat", "senate", "jpa", "spak", "tcis", "library", "anugerah", "award", "diraja", "canselor", "alumni", "psm", "ritec", "tokoh", "pingat"
+    "senat", "senate", "jpa", "spak", "tcis", "library", "anugerah", "award",
+    "diraja", "canselor", "alumni", "psm", "ritec", "tokoh", "pingat",
+    "kredit", "credit", "transfer", "pindah", "dekan", "dean", "syarat",
+    "peraturan", "regulation", "kedudukan", "standing"
 }
 
 def token_overlap_ratio(user_text, dataset_text):
@@ -1073,8 +1076,8 @@ def search_official_web_source(user_input):
     if web_sources_df.empty:
         return None
 
-    cleaned_input = clean_text(user_input)
-    input_tokens = set(cleaned_input.split())
+    if not is_academic_like(cleaned_input):
+        return None
     if len(input_tokens) < 2:
         return None
 
@@ -1378,9 +1381,107 @@ def get_bot_response(user_input):
     if is_unsupported_subsidy_fee_query(cleaned_input):
         return build_missing_official_source_response(user_input)
 
-    tuition_response = search_tuition_fee(user_input)
-    if tuition_response:
-        return tuition_response
+    # 0. Out of Scope Non-Academic Guardrail
+    out_of_scope_triggers = [
+        "pizza", "burger", "makan", "lapar", "food", "cook", "recipe", "resepi", "restoran",
+        "cuaca", "weather", "hujan", "movie", "wayang", "lagu", "music", "song", "artis",
+        "perdana menteri", "prime minister", "politik", "parlimen", "pilihan raya", "kerajaan",
+        "economy in malaysia", "ekonomi malaysia", "saham", "crypto", "bitcoin", "forex"
+    ]
+    if any(trigger in cleaned_input for trigger in out_of_scope_triggers):
+        if not is_academic_like(cleaned_input):
+            language = detect_language(user_input)
+            last_prediction["intent"] = "out_of_scope"
+            last_prediction["confidence"] = 1.0
+            set_ui_choices("after", after_answer_choices(language))
+            if language == "bm":
+                return (
+                    "ℹ️ <b>Di Luar Skop Akademik UTHM</b>\n\n"
+                    "Maaf, saya adalah Pembantu AI khusus untuk hal ehwal pengurusan akademik UTHM (seperti pendaftaran kursus, kalendar akademik, semakan yuran, pindah kredit, peperiksaan, dan peraturan akademik).\n\n"
+                    "Soalan anda di luar skop akademik UTHM. Sila kemukakan soalan berkaitan akademik universiti."
+                )
+            return (
+                "ℹ️ <b>Outside UTHM Academic Scope</b>\n\n"
+                "I am an AI assistant specifically dedicated to UTHM academic affairs (such as course registration, tuition fees, academic calendar, credit transfer, examination rules, and student regulations).\n\n"
+                "Your question is outside the scope of UTHM academic support. Please feel free to ask any university academic-related questions."
+            )
+
+    # --- Credit Transfer / Pindah Kredit ---
+    if any(term in cleaned_input for term in [
+        "pindah kredit", "transfer kredit", "credit transfer", "pengecualian kredit", "credit exemption"
+    ]):
+        last_prediction["intent"] = "credit_transfer"
+        last_prediction["confidence"] = 1.0
+        language = detect_language(user_input)
+        conversation_context["last_intent"] = "credit_transfer"
+        conversation_context["last_language"] = language
+        set_ui_choices("after", after_answer_choices(language))
+        if language == "bm":
+            return (
+                "🎓 <b>Panduan & Peraturan Pindah Kredit (Credit Transfer) UTHM</b>\n\n"
+                "Berdasarkan Peraturan Akademik UTHM (Edisi Ke-8), berikut adalah syarat-syarat rasmi:\n\n"
+                "• <b>Kelayakan Pemohon:</b> Pelajar yang berpindah atau mempunyai kelayakan diploma/kelayakan terdahulu dari institusi yang diiktiraf Senat UTHM.\n"
+                "• <b>Kesetaraan Silibus:</b> Isi kandungan kursus yang dipohon hendaklah setaraf dan sekurang-kurangnya <b>80% sama</b> dengan sukatan silibus kursus UTHM.\n"
+                "• <b>Syarat Gred Minimum:</b> Memperoleh sekurang-kurangnya <b>Gred C (2.00) / Gred C+</b> daripada institusi asal.\n"
+                "• <b>Had Maksimum Kredit:</b> Jumlah pindah kredit tidak boleh melebihi <b>30% daripada jumlah kredit bergraduat</b> (atau sehingga 50% bagi program bertauliah MQA).\n"
+                "• <b>Prosedur & Masa:</b> Permohonan hendaklah dibuat pada <b>Semester Pertama</b> pengajian sahaja dengan menghantar <b>Borang PPA 08</b> bersama silibus kursus ke Pejabat Pengurusan Akademik (PPA).\n\n"
+                "<i>Sumber Rasmi: Peraturan Akademik UTHM • Pejabat Pengurusan Akademik (PPA)</i>"
+            )
+        return (
+            "🎓 <b>Credit Transfer & Exemption Guidelines (UTHM)</b>\n\n"
+            "According to official UTHM Academic Regulations (8th Edition):\n\n"
+            "• <b>Eligibility:</b> Students with prior qualifications from Senate-recognised institutions with equivalent course syllabi.\n"
+            "• <b>Syllabus Similarity:</b> Course content must be at least <b>80% identical</b> to the UTHM course syllabus.\n"
+            "• <b>Minimum Grade:</b> Must achieve at least <b>Grade C (2.00) / Grade C+</b> in the original course.\n"
+            "• <b>Maximum Credit Transfer:</b> Must not exceed <b>30% of total graduation credits</b> (up to 50% for MQA-accredited programmes).\n"
+            "• <b>Procedure:</b> Application must be submitted in the <b>First Semester</b> of study using <b>Borang PPA 08</b> accompanied by certified course syllabi to the Academic Management Office (PPA).\n\n"
+            "<i>Official Source: UTHM Academic Regulations • PPA UTHM</i>"
+        )
+
+    # --- Course Registration Detailed Procedure ---
+    if any(phrase in cleaned_input for phrase in [
+        "bagaimana nak daftar subjek", "macam mana nak daftar subjek", "cara daftar kursus",
+        "cara daftar subjek", "bagaimana daftar kursus", "how to register subject",
+        "how student need to register", "how to register course", "registration procedure",
+        "prosedur pendaftaran kursus", "bagaimana mendaftar kursus", "cara mendaftar kursus"
+    ]):
+        last_prediction["intent"] = "course_registration"
+        last_prediction["confidence"] = 1.0
+        language = detect_language(user_input)
+        conversation_context["last_intent"] = "course_registration"
+        conversation_context["last_language"] = language
+        set_ui_choices("after", after_answer_choices(language))
+        if language == "bm":
+            return (
+                "📝 <b>Prosedur Lengkap Pendaftaran Kursus Pelajar UTHM</b>\n\n"
+                "1. <b>Sistem Pendaftaran (SMAP AUTOREG):</b>\n"
+                "   Pendaftaran kursus dilakukan secara dalam talian melalui portal SMAP semasa tempoh pendaftaran:\n"
+                "   🔗 https://smap.uthm.edu.my/reg/courses\n\n"
+                "2. <b>Had Beban Jam Kredit:</b>\n"
+                "   • <b>Kedudukan Baik (KB):</b> Minimum 12 jam kredit, Maksimum 20 jam kredit.\n"
+                "   • <b>Kedudukan Bersyarat (KS):</b> Maksimum 12 jam kredit sahaja.\n\n"
+                "3. <b>Tempoh Tambah / Gugur Kursus:</b>\n"
+                "   • Dilakukan dalam <b>Minggu 1 dan Minggu 2</b> awal setiap semester.\n"
+                "   • Penarikan diri dari kursus (Tarik Diri - TD) dibenarkan sehingga Minggu ke-8 dengan kelulusan fakulti.\n\n"
+                "4. <b>Pengesahan Penasihat Akademik (PA):</b>\n"
+                "   Pastikan senarai kursus yang didaftarkan telah disahkan oleh Penasihat Akademik anda bagi memastikan pematuhan struktur kurikulum.\n\n"
+                "<i>Sumber Rasmi: Pejabat Pengurusan Akademik (PPA) UTHM</i>"
+            )
+        return (
+            "📝 <b>Complete UTHM Course Registration Guide</b>\n\n"
+            "1. <b>Registration Portal (SMAP AUTOREG):</b>\n"
+            "   Course registration is completed online via the SMAP portal during the designated registration period:\n"
+            "   🔗 https://smap.uthm.edu.my/reg/courses\n\n"
+            "2. <b>Credit Hour Workload:</b>\n"
+            "   • <b>Good Standing (KB):</b> Minimum 12 credits, Maximum 20 credits per semester.\n"
+            "   • <b>Conditional Probation (KS):</b> Maximum 12 credits only.\n\n"
+            "3. <b>Add & Drop Period:</b>\n"
+            "   • Weeks 1 and 2 of the semester via SMAP AUTOREG.\n"
+            "   • Course withdrawal (TD) is permitted up to Week 8 subject to minimum credit balance.\n\n"
+            "4. <b>Academic Advisor (PA) Endorsement:</b>\n"
+            "   Always ensure your registered course schedule is verified by your Academic Advisor.\n\n"
+            "<i>Official Source: UTHM Academic Management Office (PPA)</i>"
+        )
 
     # 4. Study duration
     if any(word in cleaned_input for word in [
