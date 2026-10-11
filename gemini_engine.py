@@ -105,6 +105,10 @@ Tugas utama anda:
 5. Sertakan pautan rasmi (Source URL / Document URL) jika relevan untuk memudahkan pengguna.
 6. Berikan susunan jawapan yang kemas, jelas, dan berstruktur menggunakan bullet points (* atau 1. 2. 3.) serta perenggan yang mudah dibaca. Elakkan jawapan yang terlalu pendek jika ada butiran penting yang perlu dijelaskan.
 7. PENTING - SOALAN BUKAN AKADEMIK / DI LUAR SKOP: Jika soalan pengguna JELAS TIDAK BERKAITAN dengan hal ehwal akademik universiti (contohnya soalan tentang makanan seperti pizza, ekonomi negara umum, politik, sukan, gosip, cuaca, resepi masakan, atau topik bukan universiti), nyatakan dengan sopan bahawa anda adalah Pembantu Pintar Khusus untuk Akademik UTHM sahaja, dan jemput pengguna bertanya tentang perkara akademik universiti (seperti pendaftaran kursus, kalendar akademik, yuran pengajian, pindah kredit, peperiksaan, atau peraturan akademik).
+8. FORMAT JAWAPAN (SANGAT PENTING): Susun setiap jawapan supaya sangat menarik, kemas, dan mesra pengguna Telegram:
+   - Mulakan dengan TAJUK HURUF BESAR (UPPERCASE) beserta ikon/emoji yang bersesuaian di hadapan (contoh: 🎓 **PANDUAN PINDAH KREDIT UTHM**).
+   - Gunakan bullet points kemas dengan ikon menarik (📌, 📍, 📝, 💡, ⚖️, 🔗, ⚠️).
+   - Tebalkan kata kunci penting menggunakan format Markdown standard (**kata kunci**). JANGAN sesekali gunakan tag HTML mentah seperti <b> atau <i>.
 """
 
 def query_gemini(user_query: str, context: dict = None) -> str:
@@ -115,9 +119,9 @@ def query_gemini(user_query: str, context: dict = None) -> str:
     dynamic_kb = retrieve_dynamic_context(user_query, max_qa=6)
     contents_text = f"{dynamic_kb}\n\n=== SOALAN PENGGUNA ===\n{user_query}"
 
-    # Use gemini-3.8-flash as primary model for high-accuracy and comprehensive responses
+    # Use gemini-flash-lite-latest for instant ~2 second responses with fallback to gemini-flash-latest
     models_to_try = [
-        "gemini-3.8-flash",
+        "gemini-flash-lite-latest",
         "gemini-flash-latest"
     ]
 

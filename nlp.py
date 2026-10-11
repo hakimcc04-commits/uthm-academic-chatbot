@@ -747,6 +747,85 @@ def detect_language(text):
 def contains_any(text, keywords):
     return any(keyword in text for keyword in keywords)
 
+INTENT_HEADER_MAP = {
+    "course_registration": {
+        "bm": "📝 **PANDUAN PENDAFTARAN KURSUS UTHM**",
+        "en": "📝 **UTHM COURSE REGISTRATION GUIDE**",
+    },
+    "add_drop_course": {
+        "bm": "🔄 **PROSEDUR TAMBAH & GUGUR KURSUS**",
+        "en": "🔄 **ADD & DROP COURSE PROCEDURES**",
+    },
+    "academic_calendar": {
+        "bm": "📅 **KALENDAR AKADEMIK RASMI UTHM**",
+        "en": "📅 **OFFICIAL UTHM ACADEMIC CALENDAR**",
+    },
+    "final_exam": {
+        "bm": "📋 **MAKLUMAT PEPERIKSAAN AKHIR UTHM**",
+        "en": "📋 **FINAL EXAMINATION INFORMATION**",
+    },
+    "cgpa_gpa": {
+        "bm": "📊 **SISTEM PENILAIAN GRED, GPA & CGPA**",
+        "en": "📊 **GRADING SYSTEM, GPA & CGPA GUIDELINES**",
+    },
+    "academic_regulation": {
+        "bm": "⚖️ **PERATURAN AKADEMIK UNIVERSITI**",
+        "en": "⚖️ **ACADEMIC REGULATIONS LIBRARY**",
+    },
+    "graduation": {
+        "bm": "🎓 **MAKLUMAT GRADUASI & KONVOKESYEN**",
+        "en": "🎓 **GRADUATION & CONVOCATION INFORMATION**",
+    },
+    "fee_payment": {
+        "bm": "💳 **STRUKTUR YURAN & KAEDAH BAYARAN**",
+        "en": "💳 **TUITION FEES & PAYMENT METHODS**",
+    },
+    "contact_ppa": {
+        "bm": "🏛️ **DIREKTORI HUBUNGAN PEJABAT PPA**",
+        "en": "🏛️ **PPA ACADEMIC OFFICE DIRECTORY**",
+    },
+    "deans_award": {
+        "bm": "🏆 **SYARAT ANUGERAH DEKAN (DEAN'S LIST)**",
+        "en": "🏆 **DEAN'S LIST AWARD REQUIREMENTS**",
+    },
+    "anugerah_diraja": {
+        "bm": "👑 **ANUGERAH PELAJAR DIRAJA UTHM**",
+        "en": "👑 **UTHM ROYAL STUDENT AWARD**",
+    },
+    "anugerah_canselor": {
+        "bm": "🎖️ **ANUGERAH CANSELOR UTHM**",
+        "en": "🎖️ **CHANCELLOR AWARD GUIDELINES**",
+    },
+    "degree_classification": {
+        "bm": "📜 **KLASIFIKASI KELAS IJAZAH SARJANA MUDA**",
+        "en": "📜 **BACHELOR DEGREE CLASSIFICATIONS**",
+    },
+    "credit_transfer": {
+        "bm": "🎓 **PANDUAN PINDAH KREDIT & PENGECUALIAN**",
+        "en": "🎓 **CREDIT TRANSFER & EXEMPTION GUIDE**",
+    },
+    "special_exam_appeal": {
+        "bm": "📑 **PEPERIKSAAN KHAS & RAYUAN SEMAKAN GRED**",
+        "en": "📑 **SPECIAL EXAM & GRADE REVIEW APPEAL**",
+    },
+    "ppa_muet_info": {
+        "bm": "🎯 **SYARAT & MAKLUMAT MUET UTHM**",
+        "en": "🎯 **UTHM MUET REQUIREMENTS & INFO**",
+    },
+    "ppa_ptptn_exemption": {
+        "bm": "💰 **PENGECUALIAN BAYARAN BALIK PTPTN**",
+        "en": "💰 **PTPTN LOAN REPAYMENT EXEMPTION**",
+    },
+    "etika_pemakaian": {
+        "bm": "👔 **PANDUAN ETIKA PEMAKAIAN PELAJAR**",
+        "en": "👔 **STUDENT DRESS CODE & ATTIRE ETHICS**",
+    },
+    "study_duration": {
+        "bm": "⏳ **TEMPOH PENGAJIAN MAKSIMUM & MINIMUM**",
+        "en": "⏳ **STUDY DURATION REQUIREMENTS**",
+    },
+}
+
 def build_response_from_row(row, user_input):
 
     language = detect_language(user_input)
@@ -764,36 +843,43 @@ def build_response_from_row(row, user_input):
     if not response:
         response = "Maaf, saya tidak mempunyai maklumat untuk soalan ini." if language == "bm" else "Sorry, I do not have information for this question yet."
 
-    source_url = row.get("source_url", "")
+    intent = row.get("intent", "")
+    header_info = INTENT_HEADER_MAP.get(intent)
+    if header_info:
+        header_text = header_info.get(language, header_info.get("en"))
+        formatted_response = f"{header_text}\n\n📌 **Penerangan / Details:**\n{response}" if language == "bm" else f"{header_text}\n\n📌 **Details & Information:**\n{response}"
+    else:
+        formatted_response = f"📌 **Maklumat Akademik UTHM:**\n{response}" if language == "bm" else f"📌 **UTHM Academic Information:**\n{response}"
 
+    source_url = row.get("source_url", "")
     if source_url:
         if language == "bm":
-            response += f"\n\nUntuk maklumat lanjut, sila layari:\n{source_url}"
+            formatted_response += f"\n\n🔗 **Pautan Rasmi / Portal:**\n{source_url}"
         else:
-            response += f"\n\nFor more information, please visit:\n{source_url}"
+            formatted_response += f"\n\n🔗 **Official Portal / Source:**\n{source_url}"
 
     if language == "bm":
         follow_up = follow_up_bm_map.get(
-            row.get("intent"),
+            intent,
             "Adakah anda mahu bertanya soalan akademik yang lain?"
         )
+        formatted_response += f"\n\n💡 **Soalan Berkaitan:**\n{follow_up}"
     else:
         follow_up = follow_up_en_map.get(
-            row.get("intent"),
+            intent,
             "Do you want to ask another academic question?"
         )
+        formatted_response += f"\n\n💡 **Related Question:**\n{follow_up}"
 
-    response += f"\n\n{follow_up}"
-
-    conversation_context["last_intent"] = row.get("intent")
+    conversation_context["last_intent"] = intent
     conversation_context["last_language"] = language
 
-    if row.get("intent") in FOLLOW_UP_OPTIONS:
+    if intent in FOLLOW_UP_OPTIONS:
         set_ui_choices("yesno", yesno_choices())
     else:
         set_ui_choices("after", after_answer_choices(language))
 
-    return response
+    return formatted_response
 
 def build_response(intent, user_input):
     intent_rows = df[df["intent"] == intent]
@@ -1396,14 +1482,14 @@ def get_bot_response(user_input):
             set_ui_choices("after", after_answer_choices(language))
             if language == "bm":
                 return (
-                    "ℹ️ <b>Di Luar Skop Akademik UTHM</b>\n\n"
+                    "ℹ️ **DI LUAR SKOP AKADEMIK UTHM**\n\n"
                     "Maaf, saya adalah Pembantu AI khusus untuk hal ehwal pengurusan akademik UTHM (seperti pendaftaran kursus, kalendar akademik, semakan yuran, pindah kredit, peperiksaan, dan peraturan akademik).\n\n"
-                    "Soalan anda di luar skop akademik UTHM. Sila kemukakan soalan berkaitan akademik universiti."
+                    "💡 _Soalan anda di luar skop akademik UTHM. Sila kemukakan soalan berkaitan akademik universiti._"
                 )
             return (
-                "ℹ️ <b>Outside UTHM Academic Scope</b>\n\n"
+                "ℹ️ **OUTSIDE UTHM ACADEMIC SCOPE**\n\n"
                 "I am an AI assistant specifically dedicated to UTHM academic affairs (such as course registration, tuition fees, academic calendar, credit transfer, examination rules, and student regulations).\n\n"
-                "Your question is outside the scope of UTHM academic support. Please feel free to ask any university academic-related questions."
+                "💡 _Your question is outside the scope of UTHM academic support. Please feel free to ask any university academic-related questions._"
             )
 
     # --- Credit Transfer / Pindah Kredit ---
@@ -1418,24 +1504,24 @@ def get_bot_response(user_input):
         set_ui_choices("after", after_answer_choices(language))
         if language == "bm":
             return (
-                "🎓 <b>Panduan & Peraturan Pindah Kredit (Credit Transfer) UTHM</b>\n\n"
-                "Berdasarkan Peraturan Akademik UTHM (Edisi Ke-8), berikut adalah syarat-syarat rasmi:\n\n"
-                "• <b>Kelayakan Pemohon:</b> Pelajar yang berpindah atau mempunyai kelayakan diploma/kelayakan terdahulu dari institusi yang diiktiraf Senat UTHM.\n"
-                "• <b>Kesetaraan Silibus:</b> Isi kandungan kursus yang dipohon hendaklah setaraf dan sekurang-kurangnya <b>80% sama</b> dengan sukatan silibus kursus UTHM.\n"
-                "• <b>Syarat Gred Minimum:</b> Memperoleh sekurang-kurangnya <b>Gred C (2.00) / Gred C+</b> daripada institusi asal.\n"
-                "• <b>Had Maksimum Kredit:</b> Jumlah pindah kredit tidak boleh melebihi <b>30% daripada jumlah kredit bergraduat</b> (atau sehingga 50% bagi program bertauliah MQA).\n"
-                "• <b>Prosedur & Masa:</b> Permohonan hendaklah dibuat pada <b>Semester Pertama</b> pengajian sahaja dengan menghantar <b>Borang PPA 08</b> bersama silibus kursus ke Pejabat Pengurusan Akademik (PPA).\n\n"
-                "<i>Sumber Rasmi: Peraturan Akademik UTHM • Pejabat Pengurusan Akademik (PPA)</i>"
+                "🎓 **PANDUAN & PERATURAN PINDAH KREDIT (CREDIT TRANSFER) UTHM**\n\n"
+                "Berdasarkan **Peraturan Akademik UTHM (Edisi Ke-8)**, berikut adalah syarat-syarat rasmi:\n\n"
+                "• 👤 **Kelayakan Pemohon:** Pelajar yang berpindah atau mempunyai kelayakan diploma/kelayakan terdahulu dari institusi yang diiktiraf Senat UTHM.\n"
+                "• 📚 **Kesetaraan Silibus:** Isi kandungan kursus yang dipohon hendaklah setaraf dan sekurang-kurangnya **80% sama** dengan sukatan silibus kursus UTHM.\n"
+                "• 📊 **Syarat Gred Minimum:** Memperoleh sekurang-kurangnya **Gred C (2.00) / Gred C+** daripada institusi asal.\n"
+                "• 🔢 **Had Maksimum Kredit:** Jumlah pindah kredit tidak boleh melebihi **30% daripada jumlah kredit bergraduat** (atau sehingga 50% bagi program bertauliah MQA).\n"
+                "• 📝 **Prosedur & Masa:** Permohonan hendaklah dibuat pada **Semester Pertama** pengajian sahaja dengan menghantar **Borang PPA 08** bersama silibus kursus ke Pejabat Pengurusan Akademik (PPA).\n\n"
+                "🏛️ **Sumber Rasmi:** _Peraturan Akademik UTHM (Edisi Ke-8) • Pejabat Pengurusan Akademik (PPA)_"
             )
         return (
-            "🎓 <b>Credit Transfer & Exemption Guidelines (UTHM)</b>\n\n"
-            "According to official UTHM Academic Regulations (8th Edition):\n\n"
-            "• <b>Eligibility:</b> Students with prior qualifications from Senate-recognised institutions with equivalent course syllabi.\n"
-            "• <b>Syllabus Similarity:</b> Course content must be at least <b>80% identical</b> to the UTHM course syllabus.\n"
-            "• <b>Minimum Grade:</b> Must achieve at least <b>Grade C (2.00) / Grade C+</b> in the original course.\n"
-            "• <b>Maximum Credit Transfer:</b> Must not exceed <b>30% of total graduation credits</b> (up to 50% for MQA-accredited programmes).\n"
-            "• <b>Procedure:</b> Application must be submitted in the <b>First Semester</b> of study using <b>Borang PPA 08</b> accompanied by certified course syllabi to the Academic Management Office (PPA).\n\n"
-            "<i>Official Source: UTHM Academic Regulations • PPA UTHM</i>"
+            "🎓 **CREDIT TRANSFER & EXEMPTION GUIDELINES (UTHM)**\n\n"
+            "According to official **UTHM Academic Regulations (8th Edition)**:\n\n"
+            "• 👤 **Eligibility:** Students with prior qualifications from Senate-recognised institutions with equivalent course syllabi.\n"
+            "• 📚 **Syllabus Similarity:** Course content must be at least **80% identical** to the UTHM course syllabus.\n"
+            "• 📊 **Minimum Grade:** Must achieve at least **Grade C (2.00) / Grade C+** in the original course.\n"
+            "• 🔢 **Maximum Credit Transfer:** Must not exceed **30% of total graduation credits** (up to 50% for MQA-accredited programmes).\n"
+            "• 📝 **Procedure:** Application must be submitted in the **First Semester** of study using **Borang PPA 08** accompanied by certified course syllabi to the Academic Management Office (PPA).\n\n"
+            "🏛️ **Official Source:** _UTHM Academic Regulations (8th Edition) • PPA UTHM_"
         )
 
     # --- Course Registration Detailed Procedure ---
@@ -1453,34 +1539,34 @@ def get_bot_response(user_input):
         set_ui_choices("after", after_answer_choices(language))
         if language == "bm":
             return (
-                "📝 <b>Prosedur Lengkap Pendaftaran Kursus Pelajar UTHM</b>\n\n"
-                "1. <b>Sistem Pendaftaran (SMAP AUTOREG):</b>\n"
-                "   Pendaftaran kursus dilakukan secara dalam talian melalui portal SMAP semasa tempoh pendaftaran:\n"
+                "📝 **PROSEDUR LENGKAP PENDAFTARAN KURSUS PELAJAR UTHM**\n\n"
+                "1. 🌐 **Sistem Pendaftaran (SMAP AUTOREG):**\n"
+                "   Pendaftaran kursus dilakukan secara dalam talian melalui portal rasmi SMAP semasa tempoh pendaftaran:\n"
                 "   🔗 https://smap.uthm.edu.my/reg/courses\n\n"
-                "2. <b>Had Beban Jam Kredit:</b>\n"
-                "   • <b>Kedudukan Baik (KB):</b> Minimum 12 jam kredit, Maksimum 20 jam kredit.\n"
-                "   • <b>Kedudukan Bersyarat (KS):</b> Maksimum 12 jam kredit sahaja.\n\n"
-                "3. <b>Tempoh Tambah / Gugur Kursus:</b>\n"
-                "   • Dilakukan dalam <b>Minggu 1 dan Minggu 2</b> awal setiap semester.\n"
-                "   • Penarikan diri dari kursus (Tarik Diri - TD) dibenarkan sehingga Minggu ke-8 dengan kelulusan fakulti.\n\n"
-                "4. <b>Pengesahan Penasihat Akademik (PA):</b>\n"
+                "2. ⚖️ **Had Beban Jam Kredit Semester:**\n"
+                "   • **Kedudukan Baik (KB):** Minimum 12 jam kredit, Maksimum 20 jam kredit.\n"
+                "   • **Kedudukan Bersyarat (KS):** Maksimum 12 jam kredit sahaja.\n\n"
+                "3. 📅 **Tempoh Tambah / Gugur Kursus:**\n"
+                "   • Dilakukan dalam **Minggu 1 dan Minggu 2** awal setiap semester.\n"
+                "   • Penarikan diri dari kursus (Tarik Diri - TD) dibenarkan sehingga **Minggu ke-8** dengan kelulusan fakulti.\n\n"
+                "4. 👨‍🏫 **Pengesahan Penasihat Akademik (PA):**\n"
                 "   Pastikan senarai kursus yang didaftarkan telah disahkan oleh Penasihat Akademik anda bagi memastikan pematuhan struktur kurikulum.\n\n"
-                "<i>Sumber Rasmi: Pejabat Pengurusan Akademik (PPA) UTHM</i>"
+                "🏛️ **Sumber Rasmi:** _Pejabat Pengurusan Akademik (PPA) UTHM_"
             )
         return (
-            "📝 <b>Complete UTHM Course Registration Guide</b>\n\n"
-            "1. <b>Registration Portal (SMAP AUTOREG):</b>\n"
+            "📝 **COMPLETE UTHM COURSE REGISTRATION GUIDE**\n\n"
+            "1. 🌐 **Registration Portal (SMAP AUTOREG):**\n"
             "   Course registration is completed online via the SMAP portal during the designated registration period:\n"
             "   🔗 https://smap.uthm.edu.my/reg/courses\n\n"
-            "2. <b>Credit Hour Workload:</b>\n"
-            "   • <b>Good Standing (KB):</b> Minimum 12 credits, Maximum 20 credits per semester.\n"
-            "   • <b>Conditional Probation (KS):</b> Maximum 12 credits only.\n\n"
-            "3. <b>Add & Drop Period:</b>\n"
+            "2. ⚖️ **Credit Hour Workload:**\n"
+            "   • **Good Standing (KB):** Minimum 12 credits, Maximum 20 credits per semester.\n"
+            "   • **Conditional Probation (KS):** Maximum 12 credits only.\n\n"
+            "3. 📅 **Add & Drop Period:**\n"
             "   • Weeks 1 and 2 of the semester via SMAP AUTOREG.\n"
-            "   • Course withdrawal (TD) is permitted up to Week 8 subject to minimum credit balance.\n\n"
-            "4. <b>Academic Advisor (PA) Endorsement:</b>\n"
+            "   • Course withdrawal (TD) is permitted up to **Week 8** subject to minimum credit balance.\n\n"
+            "4. 👨‍🏫 **Academic Advisor (PA) Endorsement:**\n"
             "   Always ensure your registered course schedule is verified by your Academic Advisor.\n\n"
-            "<i>Official Source: UTHM Academic Management Office (PPA)</i>"
+            "🏛️ **Official Source:** _UTHM Academic Management Office (PPA)_"
         )
 
     # 4. Study duration

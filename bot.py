@@ -203,6 +203,11 @@ def convert_markdown_to_telegram_html(md_text: str) -> str:
     if not md_text:
         return ""
     
+    # Pre-normalize any existing raw HTML tags so html.escape won't display them literally
+    text = re.sub(r'</?(?:b|strong)>', '**', md_text, flags=re.IGNORECASE)
+    text = re.sub(r'</?(?:i|em)>', '_', text, flags=re.IGNORECASE)
+    text = re.sub(r'</?code>', '`', text, flags=re.IGNORECASE)
+    
     links = []
     def save_link(match):
         label = match.group(1)
@@ -211,9 +216,13 @@ def convert_markdown_to_telegram_html(md_text: str) -> str:
         links.append((label, url))
         return f"___LINK_PLACEHOLDER_{idx}___"
     
-    processed = re.sub(r'\[([^\]]+)\]\((https?://[^\s\)]+)\)', save_link, md_text)
+    processed = re.sub(r'\[([^\]]+)\]\((https?://[^\s\)]+)\)', save_link, text)
     processed = html.escape(processed)
+    
+    # Convert markdown formatting to clean Telegram HTML tags
     processed = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', processed)
+    processed = re.sub(r'(?<!\w)_(.*?)_(?!\w)', r'<i>\1</i>', processed)
+    processed = re.sub(r'`(.*?)`', r'<code>\1</code>', processed)
     processed = re.sub(r'^[ \t]*[\*\-][ \t]+', r'• ', processed, flags=re.MULTILINE)
 
     for idx, (label, url) in enumerate(links):
