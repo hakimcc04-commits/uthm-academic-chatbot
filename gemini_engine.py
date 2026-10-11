@@ -43,31 +43,51 @@ def load_data():
         else:
             _df_docs = pd.DataFrame()
 
-def retrieve_dynamic_context(user_query: str, max_qa: int = 6) -> str:
+def retrieve_dynamic_context(user_query: str, max_qa: int = 15) -> str:
     load_data()
     
-    query_words = set(re.findall(r"\w+", user_query.lower()))
-    stop_words = {"yang", "dan", "di", "ke", "ini", "itu", "saya", "nak", "bagaimana", "macam", "mana", "bila", "apa", "berapa", "is", "the", "in", "to", "what", "how"}
+    query_lower = user_query.lower()
+    query_words = set(re.findall(r"\w+", query_lower))
+    stop_words = {
+        "yang", "dan", "di", "ke", "ini", "itu", "saya", "nak", "bagaimana", "macam", "mana",
+        "bila", "apa", "berapa", "is", "the", "in", "to", "what", "how", "uthm", "pelajar",
+        "student", "ada", "boleh", "beri", "senarai", "list", "tentang", "mengenai", "bagi",
+        "untuk", "for", "are", "can", "you", "give", "me"
+    }
     meaningful_words = query_words - stop_words
     if not meaningful_words:
         meaningful_words = query_words
 
     lines = ["=== UTHM ACADEMIC KNOWLEDGE BASE (RELEVANT FACTS) ==="]
 
+    # Special handling for awards query: guarantee ALL awards are included in context
+    is_award_query = any(k in query_lower for k in ["anugerah", "award", "dekan", "diraja", "canselor", "pingat"])
+    award_intents = {
+        "anugerah_diraja", "anugerah_canselor", "anugerah_naib_canselor", "deans_award",
+        "anugerah_alumni", "anugerah_tokoh_siswa", "anugerah_inovasi_ritec", "anugerah_psm"
+    }
+
     scored_rows = []
     if _df_dataset is not None and not _df_dataset.empty:
         for idx, row in _df_dataset.iterrows():
-            q_text = (str(row.get("question", "")) + " " + str(row.get("intent", ""))).lower()
+            intent = str(row.get("intent", ""))
+            q_text = (str(row.get("question", "")) + " " + intent).lower()
             q_words = set(re.findall(r"\w+", q_text))
-            overlap = len(meaningful_words & q_words)
-            scored_rows.append((overlap, row))
+            score = len(meaningful_words & q_words)
+            if is_award_query and intent in award_intents:
+                score += 10  # Massive priority boost for all award rows
+            scored_rows.append((score, row))
         
         scored_rows.sort(key=lambda x: x[0], reverse=True)
         top_qa = scored_rows[:max_qa]
         
         lines.append("\n--- RELEVANT FREQUENTLY ASKED QUESTIONS ---")
+        seen_questions = set()
         for score, row in top_qa:
             q = str(row.get("question", "")).strip()
+            if q in seen_questions:
+                continue
+            seen_questions.add(q)
             r_bm = str(row.get("response_bm", "")).strip()
             r_en = str(row.get("response_en", "")).strip()
             url = str(row.get("source_url", "")).strip()
@@ -79,18 +99,26 @@ def retrieve_dynamic_context(user_query: str, max_qa: int = 6) -> str:
             lines.append("-")
 
     if _df_docs is not None and not _df_docs.empty:
-        lines.append("\n--- OFFICIAL UTHM DOCUMENTS & FORMS ---")
+        lines.append("\n--- RELEVANT OFFICIAL DOCUMENTS & FORMS ---")
+        matched_docs = []
         for idx, row in _df_docs.iterrows():
             doc_name = str(row.get("document_name", "")).strip()
             summary = str(row.get("summary", "")).strip()
+            doc_text = (doc_name + " " + summary).lower()
+            doc_words = set(re.findall(r"\w+", doc_text))
+            doc_score = len(meaningful_words & doc_words)
+            if doc_score > 0:
+                matched_docs.append((doc_score, row))
+        
+        matched_docs.sort(key=lambda x: x[0], reverse=True)
+        for score, row in matched_docs[:5]:
+            doc_name = str(row.get("document_name", "")).strip()
+            summary = str(row.get("summary", "")).strip()
             url = str(row.get("source_url", "")).strip()
-            file_p = str(row.get("file_path", "")).strip()
             lines.append(f"Document: {doc_name}")
             lines.append(f"Summary: {summary}")
             if url and url != "nan":
                 lines.append(f"URL: {url}")
-            if file_p and file_p != "nan":
-                lines.append(f"File Path: {file_p}")
             lines.append("-")
 
     return "\n".join(lines)
@@ -98,18 +126,21 @@ def retrieve_dynamic_context(user_query: str, max_qa: int = 6) -> str:
 SYSTEM_INSTRUCTIONS = """Anda adalah Pembantu Pintar AI Akademik Rasmi Universiti Tun Hussein Onn Malaysia (UTHM Academic Chatbot).
 
 Tugas utama anda:
-1. Menjawab semua soalan akademik pengguna (pelajar, pensyarah, orang awam) secara sangat tepat, teliti, mesra, berstruktur, dan lengkap.
+1. Menjawab semua soalan akademik pengguna secara sangat tepat, teliti, mesra, berstruktur, dan kemas.
 2. Memahami pelbagai variasi bahasa termasuk Bahasa Melayu pasar / slang / ejaan ringkas (contoh: 'mcm', 'nk', 'dpt', 'utk', '2nd class', 'gugur subjek', 'dekan', 'psm', 'pointer', 'ptptn').
 3. Menggunakan UTHM Academic Knowledge Base yang disediakan sebagai rujukan fakta utama. Jangan mereka maklumat yang bertentangan dengan maklumat UTHM.
 4. Menjawab mengikut bahasa yang digunakan oleh pengguna (Bahasa Melayu jika soalan BM/slang BM, English jika soalan Inggeris).
 5. Sertakan pautan rasmi (Source URL / Document URL) jika relevan untuk memudahkan pengguna.
-6. Berikan susunan jawapan yang kemas, jelas, dan berstruktur menggunakan bullet points (* atau 1. 2. 3.) serta perenggan yang mudah dibaca. Elakkan jawapan yang terlalu pendek jika ada butiran penting yang perlu dijelaskan.
-7. PENTING - SOALAN BUKAN AKADEMIK / DI LUAR SKOP: Jika soalan pengguna JELAS TIDAK BERKAITAN dengan hal ehwal akademik universiti (contohnya soalan tentang makanan seperti pizza, ekonomi negara umum, politik, sukan, gosip, cuaca, resepi masakan, atau topik bukan universiti), nyatakan dengan sopan bahawa anda adalah Pembantu Pintar Khusus untuk Akademik UTHM sahaja, dan jemput pengguna bertanya tentang perkara akademik universiti (seperti pendaftaran kursus, kalendar akademik, yuran pengajian, pindah kredit, peperiksaan, atau peraturan akademik).
-8. FORMAT JAWAPAN (SANGAT PENTING): Susun setiap jawapan supaya sangat menarik, kemas, dan mesra pengguna Telegram:
+6. FORMAT JAWAPAN (SANGAT PENTING):
    - Mulakan dengan TAJUK HURUF BESAR (UPPERCASE) beserta ikon/emoji yang bersesuaian di hadapan (contoh: 🎓 **PANDUAN PINDAH KREDIT UTHM**).
    - Gunakan bullet points kemas dengan ikon menarik (📌, 📍, 📝, 💡, ⚖️, 🔗, ⚠️).
    - Tebalkan kata kunci penting menggunakan format Markdown standard (**kata kunci**). JANGAN sesekali gunakan tag HTML mentah seperti <b> atau <i>.
-9. KELENGKAPAN JAWAPAN: Jika pengguna meminta senarai (contoh: senarai anugerah, senarai dokumen, senarai peraturan, senarai prosedur), JANGAN ringkaskan separuh jalan kepada 1 atau 2 perkara sahaja! Senaraikan SEMUA anugerah dan pilihan utama yang wujud dalam pangkalan data secara menyeluruh dan lengkap.
+7. GAYA JAWAPAN LENGKAP TETAPI PADAT & RINGKAS (CONCISE YET COMPREHENSIVE):
+   - Jika pengguna meminta senarai (contoh: senarai anugerah, senarai dokumen, senarai peraturan):
+     • Senaraikan KESEMUA perkara tanpa tertinggal satu pun (contoh untuk anugerah: Anugerah Diraja, Anugerah Canselor, Anugerah Naib Canselor, Anugerah Dekan, Anugerah Alumni, Anugerah Tokoh Siswa, Pingat Inovasi RITEC, Anugerah PSM).
+     • Berikan huraian yang RINGKAS, PADAT, dan TEPAT (1 hingga 2 baris sahaja untuk setiap anugerah/perkara) yang menyatakan syarat utama.
+     • Elakkan huraian yang terlalu panjang lebar atau meleret-leret supaya mesej kemas, mudah dibaca sekilas pandang, dan muat dalam satu mesej Telegram tanpa terpotong.
+8. PENTING - SOALAN BUKAN AKADEMIK / DI LUAR SKOP: Jika soalan pengguna JELAS TIDAK BERKAITAN dengan hal ehwal akademik universiti (contohnya soalan tentang makanan seperti pizza, ekonomi negara umum, politik, sukan, gosip, cuaca, resepi masakan, atau topik bukan universiti), nyatakan dengan sopan bahawa anda adalah Pembantu Pintar Khusus untuk Akademik UTHM sahaja, dan jemput pengguna bertanya tentang perkara akademik universiti.
 """
 
 def query_gemini(user_query: str, context: dict = None) -> str:
