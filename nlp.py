@@ -1042,13 +1042,24 @@ def search_document(user_input):
     cleaned_input = clean_text(user_input)
     language = detect_language(user_input)
 
+    # Never intercept general question topics
+    topic_safeguards = [
+        "pakaian", "pemakaian", "dress code", "anugerah", "award", "dekan", "diraja",
+        "canselor", "gpa", "cgpa", "daftar", "kursus", "pindah kredit", "peperiksaan",
+        "yuran", "graduasi", "konvokesyen"
+    ]
+    if any(topic in cleaned_input for topic in topic_safeguards):
+        # Unless user explicitly asked to download or fetch a specific form/PDF
+        if not any(dl in cleaned_input for dl in ["borang", "download", "muat turun", "fail pdf"]):
+            return None
+
     document_words = [
-        "document", "file", "pdf", "link", "download",
-        "dokumen", "fail", "muat turun", "rujukan",
+        "document", "file", "pdf", "download",
+        "dokumen", "fail", "muat turun",
         "borang", "form", "sijil", "transkrip",
-        "certificate", "transcript", "panduan", "guideline",
-        "kertas kerja", "senat", "jpa", "pak", "template",
-        "templat", "memo", "cv"
+        "certificate", "transcript",
+        "kertas kerja", "senat", "jpa", "template",
+        "templat", "memo"
     ]
 
     if not any(re.search(r'\b' + re.escape(word) + r'\b', cleaned_input) for word in document_words):
@@ -1588,7 +1599,7 @@ def get_bot_response(user_input):
         last_prediction["confidence"] = 1.0
         return build_response("degree_classification", user_input)
 
-    if any(term in cleaned_input for term in ["etika pemakaian", "pakaian", "dress code"]):
+    if any(term in cleaned_input for term in ["etika pemakaian", "pakaian", "pemakaian", "dress code", "baju", "attire"]):
         last_prediction["intent"] = "etika_pemakaian"
         last_prediction["confidence"] = 1.0
         return build_response("etika_pemakaian", user_input)
