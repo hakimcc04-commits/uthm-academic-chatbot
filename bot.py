@@ -63,6 +63,7 @@ import os
 BASE_DIR = Path(__file__).resolve().parent
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 BANNER_PATH = BASE_DIR / "assets" / "welcome_banner.png"
+DRESS_CODE_POSTER_PATH = BASE_DIR / "assets" / "dress_code_poster.jpg"
 
 if not BOT_TOKEN:
     print("[ERROR] TELEGRAM_BOT_TOKEN environment variable is not set! Please set it before running.", flush=True)
@@ -691,6 +692,34 @@ async def show_regulation_detail(update: Update, context: ContextTypes.DEFAULT_T
         ),
     }
 
+    if topic == "dress_code":
+        dress_code_text = (
+            "👔 <b>PERATURAN ETIKA BERPAKAIAN & SAHSIAH RUPA DIRI PELAJAR UTHM</b>\n\n"
+            "• <b>Peraturan Am:</b>\n"
+            "  - Berpakaian kemas, bersih, bersopan, tidak ketat, tidak jarang, dan tidak menjolok mata.\n"
+            "  - Sentiasa mempamerkan <b>Kad Matrik Pelajar</b> di dalam kawasan kampus.\n"
+            "  - Pakaian tradisional dibenarkan jika tidak melanggar peraturan universiti.\n\n"
+            "• <b>Semasa Kuliah & Urusan Rasmi:</b>\n"
+            "  - Baju berkolar atau pakaian kemas/korporat.\n"
+            "  - Jeans dibenarkan ke kuliah dengan syarat <b>tidak ketat, tidak londeh, tidak lusuh, dan tidak koyak/bertampal</b>.\n"
+            "  - Selipar dan sandal <b>DILARANG SAMA SEKALI</b>. Wajib kasut bertutup dan berstoking.\n\n"
+            "• <b>Pelajar Lelaki:</b> Rambut kemas dan pendek (tidak mencecah kolar/telinga/kening). Jambang dan janggut sentiasa kemas.\n"
+            "• <b>Pelajar Perempuan:</b> Baju kurung/sopan, kain melepasi lutut. Berpurdah/niqab tidak dibenarkan semasa proses pengecaman identiti.\n\n"
+            "• <b>Tindakan Pelanggaran:</b> Amaran bagi kesalahan pertama, <b>Denda RM50.00</b> bagi kesalahan kedua dan seterusnya serta direkodkan dalam SMAP.\n\n"
+            "<i>Sumber Rasmi: HEPA UTHM • Poster Peraturan Etika Berpakaian Pelajar UTHM</i>"
+        )
+        if DRESS_CODE_POSTER_PATH.exists():
+            with DRESS_CODE_POSTER_PATH.open("rb") as f:
+                await message_target(update).reply_photo(
+                    photo=f,
+                    caption=dress_code_text,
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=after_regulation_keyboard()
+                )
+            return
+        await send_html(update, dress_code_text, reply_markup=after_regulation_keyboard(), edit=edit)
+        return
+
     text = details.get(topic, "Information not available.")
     await send_html(update, text, reply_markup=after_regulation_keyboard(), edit=edit)
 
@@ -1208,6 +1237,16 @@ async def process_academic_text(update: Update, context: ContextTypes.DEFAULT_TY
     markup = nlp_choice_keyboard(payload) if payload.get("kind") else home_keyboard()
     formatted_html = convert_markdown_to_telegram_html(response_text)
     await send_html(update, formatted_html, reply_markup=markup, edit=edit)
+
+    # Send official dress code infographic poster if query is about student attire/dress code
+    if any(k in user_text.lower() for k in ["pakaian", "pemakaian", "dress code", "baju", "attire"]):
+        if DRESS_CODE_POSTER_PATH.exists():
+            caption = "📌 <b>Poster Rasmi: Peraturan Etika Berpakaian & Sahsiah Rupa Diri Pelajar UTHM</b>"
+            try:
+                with DRESS_CODE_POSTER_PATH.open("rb") as img:
+                    await message_target(update).reply_photo(photo=img, caption=caption, parse_mode=ParseMode.HTML)
+            except Exception:
+                pass
 
     document_file = get_last_document_file()
     if document_file:

@@ -341,6 +341,7 @@ def academic_regulation_category_keyboard():
             [InlineKeyboardButton("🎓 Credit Transfer (Pindah Kredit)", callback_data="regs:topic:credit_transfer")],
             [InlineKeyboardButton("📝 Course Registration Rules", callback_data="regs:topic:course_registration")],
             [InlineKeyboardButton("📊 GPA, CGPA & Academic Standing", callback_data="regs:topic:academic_standing")],
+            [InlineKeyboardButton("👔 Etika Berpakaian Pelajar (Poster)", callback_data="regs:topic:dress_code")],
             [InlineKeyboardButton("🧮 GPA / CGPA Target Calculator", callback_data="calc:gpa:start")],
             [InlineKeyboardButton("📊 Visual Procedure Flowcharts", callback_data="go:diagrams")],
             [InlineKeyboardButton("⏳ Academic Calendar Countdown", callback_data="quick:countdown")],
