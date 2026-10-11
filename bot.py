@@ -214,7 +214,7 @@ def convert_markdown_to_telegram_html(md_text: str) -> str:
         url = match.group(2)
         idx = len(links)
         links.append((label, url))
-        return f"___LINK_PLACEHOLDER_{idx}___"
+        return f"##LINKPLACEHOLDER{idx}##"
     
     processed = re.sub(r'\[([^\]]+)\]\((https?://[^\s\)]+)\)', save_link, text)
     processed = html.escape(processed)
@@ -229,7 +229,7 @@ def convert_markdown_to_telegram_html(md_text: str) -> str:
         escaped_label = html.escape(label)
         escaped_url = html.escape(url)
         html_link = f'<a href="{escaped_url}">{escaped_label}</a>'
-        processed = processed.replace(f"___LINK_PLACEHOLDER_{idx}___", html_link)
+        processed = processed.replace(f"##LINKPLACEHOLDER{idx}##", html_link)
 
     return processed
 

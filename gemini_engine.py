@@ -109,6 +109,7 @@ Tugas utama anda:
    - Mulakan dengan TAJUK HURUF BESAR (UPPERCASE) beserta ikon/emoji yang bersesuaian di hadapan (contoh: 🎓 **PANDUAN PINDAH KREDIT UTHM**).
    - Gunakan bullet points kemas dengan ikon menarik (📌, 📍, 📝, 💡, ⚖️, 🔗, ⚠️).
    - Tebalkan kata kunci penting menggunakan format Markdown standard (**kata kunci**). JANGAN sesekali gunakan tag HTML mentah seperti <b> atau <i>.
+9. KELENGKAPAN JAWAPAN: Jika pengguna meminta senarai (contoh: senarai anugerah, senarai dokumen, senarai peraturan, senarai prosedur), JANGAN ringkaskan separuh jalan kepada 1 atau 2 perkara sahaja! Senaraikan SEMUA anugerah dan pilihan utama yang wujud dalam pangkalan data secara menyeluruh dan lengkap.
 """
 
 def query_gemini(user_query: str, context: dict = None) -> str:
@@ -116,7 +117,7 @@ def query_gemini(user_query: str, context: dict = None) -> str:
     if not client:
         return None
 
-    dynamic_kb = retrieve_dynamic_context(user_query, max_qa=6)
+    dynamic_kb = retrieve_dynamic_context(user_query, max_qa=15)
     contents_text = f"{dynamic_kb}\n\n=== SOALAN PENGGUNA ===\n{user_query}"
 
     # Use gemini-flash-lite-latest for instant ~2 second responses with fallback to gemini-flash-latest
@@ -134,7 +135,7 @@ def query_gemini(user_query: str, context: dict = None) -> str:
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_INSTRUCTIONS,
                     temperature=0.2,
-                    max_output_tokens=400
+                    max_output_tokens=1500
                 )
             )
             elapsed = time.time() - start_t
