@@ -6,6 +6,7 @@ pandas>=2.0.0
 scikit-learn>=1.4.0
 python-dotenv>=1.0.0
 reportlab>=4.0.0
+matplotlib>=3.8.0
 pyotp>=2.9.0
 qrcode>=8.0
 requests>=2.30.0

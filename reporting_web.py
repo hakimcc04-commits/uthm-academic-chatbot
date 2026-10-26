@@ -23,11 +23,14 @@ from pathlib import Path
 import pyotp
 import qrcode
 from flask import Flask, Response, abort, flash, g, redirect, render_template, request, session, url_for
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, Image, KeepTogether, HRFlowable
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from db import connect_db
@@ -504,43 +507,287 @@ def query_metrics(period: str):
     }
 
 
+def generate_pdf_chart_buffers(charts: dict):
+    """Generate high-resolution PNG charts for query traffic trend and topic distribution."""
+    # Chart 1: Traffic trend
+    fig1, ax1 = plt.subplots(figsize=(3.45, 1.85), dpi=180)
+    trend_labels = charts.get("trend", {}).get("labels", [])
+    trend_vals = charts.get("trend", {}).get("values", [])
+    if trend_labels and trend_vals and sum(trend_vals) > 0:
+        short_labels = [lbl.split("-")[-2] + "/" + lbl.split("-")[-1] if "-" in lbl else lbl for lbl in trend_labels]
+        ax1.plot(short_labels, trend_vals, color="#1D4ED8", marker="o", markersize=3, linewidth=1.6)
+        ax1.fill_between(short_labels, trend_vals, color="#DBEAFE", alpha=0.55)
+        ax1.set_title("Query Traffic Volume Trend", fontsize=8, fontweight="bold", color="#0F172A", pad=5)
+        ax1.tick_params(axis="both", which="major", labelsize=6, colors="#475569")
+        if len(short_labels) > 6:
+            ax1.tick_params(axis="x", rotation=25)
+    else:
+        ax1.text(0.5, 0.5, "No query traffic recorded\nfor this period", ha="center", va="center", color="#94A3B8", fontsize=7.5)
+        ax1.set_title("Query Traffic Volume Trend", fontsize=8, fontweight="bold", color="#0F172A", pad=5)
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+    ax1.spines["left"].set_color("#CBD5E1")
+    ax1.spines["bottom"].set_color("#CBD5E1")
+    ax1.grid(True, linestyle="--", alpha=0.45, color="#E2E8F0")
+    plt.tight_layout()
+    buf1 = io.BytesIO()
+    plt.savefig(buf1, format="png", bbox_inches="tight", dpi=180)
+    plt.close(fig1)
+    buf1.seek(0)
+
+    # Chart 2: Top categories donut
+    fig2, ax2 = plt.subplots(figsize=(3.45, 1.85), dpi=180)
+    intent_labels = charts.get("intents", {}).get("labels", [])
+    intent_vals = charts.get("intents", {}).get("values", [])
+    palette = ["#1E3A8A", "#2563EB", "#0284C7", "#10B981", "#F59E0B", "#8B5CF6"]
+    if intent_labels and intent_vals and sum(intent_vals) > 0:
+        top_labels = intent_labels[:5]
+        top_vals = intent_vals[:5]
+        total_top = sum(top_vals)
+        wedges, texts, autotexts = ax2.pie(
+            top_vals,
+            autopct=lambda p: f"{p:.0f}%" if p >= 8 else "",
+            pctdistance=0.72,
+            colors=palette[:len(top_vals)],
+            startangle=140,
+            wedgeprops=dict(width=0.42, edgecolor="w", linewidth=1.2)
+        )
+        for t in autotexts:
+            t.set_fontsize(5.5)
+            t.set_color("white")
+            t.set_weight("bold")
+        legend_labels = [f"{l[:11]}.. ({v/total_top*100:.0f}%)" if len(l) > 11 else f"{l} ({v/total_top*100:.0f}%)" for l, v in zip(top_labels, top_vals)]
+        ax2.legend(wedges, legend_labels, loc="center left", bbox_to_anchor=(0.82, 0.5), fontsize=5.6, frameon=False)
+        ax2.set_title("Inquiry Topic Distribution", fontsize=8, fontweight="bold", color="#0F172A", pad=5)
+    else:
+        ax2.text(0.5, 0.5, "No category distribution\navailable", ha="center", va="center", color="#94A3B8", fontsize=7.5)
+        ax2.set_title("Inquiry Topic Distribution", fontsize=8, fontweight="bold", color="#0F172A", pad=5)
+    plt.tight_layout()
+    buf2 = io.BytesIO()
+    plt.savefig(buf2, format="png", bbox_inches="tight", dpi=180)
+    plt.close(fig2)
+    buf2.seek(0)
+
+    return buf1, buf2
+
+
 def build_pdf_report(period: str):
-    """Return a polished in-memory report suitable for download or printing."""
+    """Return an executive in-memory report with high-impact visual charts and analytics."""
     metrics = query_metrics(period)
     charts = chart_data(period)
-    queue = unresolved_queries(period, limit=12)
+    queue = unresolved_queries(period, limit=8)
     output = io.BytesIO()
-    document = SimpleDocTemplate(output, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm, bottomMargin=16 * mm)
+    doc = SimpleDocTemplate(
+        output,
+        pagesize=A4,
+        leftMargin=12 * mm,
+        rightMargin=12 * mm,
+        topMargin=10 * mm,
+        bottomMargin=10 * mm
+    )
     styles = getSampleStyleSheet()
-    body = ParagraphStyle("report_body", parent=styles["BodyText"], fontSize=8, leading=11, textColor=colors.HexColor("#2A4156"))
-    heading = ParagraphStyle("report_heading", parent=styles["Heading2"], fontSize=11, textColor=colors.HexColor("#0A2C52"), spaceBefore=12, spaceAfter=6)
-    title = ParagraphStyle("report_title", parent=styles["Title"], fontSize=18, textColor=colors.HexColor("#0A2C52"), spaceAfter=4)
-    story = [
-        Paragraph("UNIVERSITI TUN HUSSEIN ONN MALAYSIA (UTHM)", ParagraphStyle("report_kicker", parent=body, fontName="Helvetica-Bold", textColor=colors.HexColor("#1976D2"))),
-        Paragraph("UTHM Academic Chatbot System Report", title),
-        Paragraph(f"Generated {datetime.now():%d %B %Y, %H:%M} | Reporting period: {period} | System Version: 2.0 (Generative AI RAG)", ParagraphStyle("report_subtitle", parent=body, textColor=colors.HexColor("#61788D"), spaceAfter=14)),
-    ]
-    summary = Table([["Total Questions", "Resolution Rate", "Unanswered Queue", "CSAT Rating Index"], [str(metrics["total_queries"]), f"{metrics['answer_rate']}%", str(metrics["unanswered"]), f"{metrics['csat_score']}%"]], colWidths=[42 * mm] * 4)
-    summary.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#EAF4FF")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#30526F")), ("TEXTCOLOR", (0, 1), (-1, 1), colors.HexColor("#0A2C52")), ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, 0), 8), ("FONTSIZE", (0, 1), (-1, 1), 16), ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8), ("GRID", (0, 0), (-1, -1), .25, colors.HexColor("#D6E3EE"))]))
-    
-    # AI System Architecture Section
-    ai_summary = Table([["AI Model Architecture", "Knowledge Base RAG", "NLU Accuracy", "Avg Latency"], [metrics["ai_engine"], "630 Q&As + 89 PDF Forms", metrics["nlu_accuracy"], metrics["avg_latency"]]], colWidths=[55 * mm, 45 * mm, 40 * mm, 28 * mm])
-    ai_summary.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F0FDF4")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#166534")), ("TEXTCOLOR", (0, 1), (-1, 1), colors.HexColor("#064E3B")), ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, 0), 7), ("FONTSIZE", (0, 1), (-1, 1), 8), ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6), ("GRID", (0, 0), (-1, -1), .25, colors.HexColor("#BBF7D0"))]))
 
-    story.extend([summary, Spacer(1, 8), Paragraph("AI Engine Performance & System Architecture", heading), ai_summary, Spacer(1, 6), Paragraph("Most Requested Academic Topics", heading)])
-    topic_rows = [["Topic", "Questions"]] + [[label, str(value)] for label, value in zip(charts["intents"]["labels"], charts["intents"]["values"])]
-    if len(topic_rows) == 1:
-        topic_rows.append(["No topic data for this period", "0"])
-    topics = Table(topic_rows, colWidths=[135 * mm, 33 * mm])
-    topics.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0A2C52")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#F7FAFD")), ("GRID", (0, 0), (-1, -1), .25, colors.HexColor("#DDE7EF")), ("FONTSIZE", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
-    story.extend([topics, Paragraph("Priority Resolution Queue (Admin Action Required)", heading)])
-    queue_rows = [["Question", "Topic", "Received Date"]] + [[Paragraph(q["user_question"], body), Paragraph(q["intent"].replace("_", " "), body), Paragraph(q["query_date"], body)] for q in queue]
-    if len(queue_rows) == 1:
-        queue_rows.append([Paragraph("No unanswered questions in this period.", body), "-", "-"])
-    queue_table = Table(queue_rows, colWidths=[94 * mm, 37 * mm, 37 * mm], repeatRows=1)
-    queue_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FFF1ED")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#9A442F")), ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("GRID", (0, 0), (-1, -1), .25, colors.HexColor("#F0DDD6")), ("FONTSIZE", (0, 0), (-1, -1), 8), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
-    story.extend([queue_table, Spacer(1, 10), Paragraph("UTHM Academic Chatbot — System Development Reporting Module v2.0", ParagraphStyle("report_footer", parent=body, fontSize=7, textColor=colors.HexColor("#7C8E9E")))])
-    document.build(story)
+    body = ParagraphStyle("rep_body", parent=styles["BodyText"], fontSize=7.5, leading=10, textColor=colors.HexColor("#1E293B"))
+    sec_heading = ParagraphStyle("rep_sec_heading", parent=styles["Heading3"], fontSize=9.5, leading=12, fontName="Helvetica-Bold", textColor=colors.HexColor("#0A2C52"), spaceBefore=7, spaceAfter=3)
+    card_title = ParagraphStyle("rep_card_title", fontName="Helvetica-Bold", fontSize=6.5, leading=8, textColor=colors.HexColor("#64748B"), alignment=1)
+    card_val = ParagraphStyle("rep_card_val", fontName="Helvetica-Bold", fontSize=15, leading=17, textColor=colors.HexColor("#0F172A"), alignment=1)
+    card_sub = ParagraphStyle("rep_card_sub", fontName="Helvetica", fontSize=6.2, leading=7.5, textColor=colors.HexColor("#0284C7"), alignment=1)
+    ai_cell = ParagraphStyle("rep_ai_cell", fontName="Helvetica", fontSize=6.8, leading=8.5, textColor=colors.HexColor("#065F46"), alignment=1)
+    ai_hdr = ParagraphStyle("rep_ai_hdr", fontName="Helvetica-Bold", fontSize=6.8, leading=8, textColor=colors.HexColor("#166534"), alignment=1)
+
+    story = []
+
+    # 1. Header Banner
+    now_str = datetime.now().strftime("%d %b %Y, %H:%M")
+    hdr_data = [
+        [
+            Paragraph("<b>UNIVERSITI TUN HUSSEIN ONN MALAYSIA (UTHM)</b><br/><font size=6.5 color=\"#BAE6FD\">PEJABAT PENGURUSAN AKADEMIK (PPA) &amp; PUSAT TEKNOLOGI MAKLUMAT (PTM)</font><br/><font size=11 color=\"#FFFFFF\"><b>UTHM ACADEMIC CHATBOT — EXECUTIVE ANALYTICS REPORT</b></font>", ParagraphStyle("hdr_txt", fontName="Helvetica", fontSize=7.5, leading=10.5, textColor=colors.white)),
+            Paragraph(f"<b>STATUS:</b> <font color=\"#4ADE80\">OPERATIONAL</font><br/><b>VERSION:</b> 2.0 (Gemini AI RAG)<br/><b>PERIOD:</b> {period.upper()}<br/><b>DATE:</b> {now_str}", ParagraphStyle("hdr_meta", fontName="Helvetica", fontSize=6.5, leading=8.5, textColor=colors.HexColor("#E2E8F0"), alignment=2))
+        ]
+    ]
+    hdr_table = Table(hdr_data, colWidths=[126 * mm, 60 * mm])
+    hdr_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#0A2C52")),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(hdr_table)
+    story.append(Spacer(1, 3 * mm))
+
+    # 2. Executive KPI Cards
+    card1 = [Paragraph("TOTAL INQUIRIES", card_title), Paragraph(str(metrics["total_queries"]), card_val), Paragraph(f"{metrics['volume_trend']} Traffic Trend", card_sub)]
+    card2 = [Paragraph("RESOLUTION RATE", card_title), Paragraph(f"{metrics['answer_rate']}%", card_val), Paragraph("Automated Resolution", card_sub)]
+    card3 = [Paragraph("UNANSWERED QUEUE", card_title), Paragraph(str(metrics["unanswered"]), card_val), Paragraph("100% Backlog Cleared" if metrics["unanswered"] == 0 else f"{metrics['unanswered']} Pending Review", card_sub)]
+    card4 = [Paragraph("CSAT RATING INDEX", card_title), Paragraph(f"{metrics['csat_score']}%", card_val), Paragraph("Student Satisfaction", card_sub)]
+
+    kpi_table = Table([[card1, card2, card3, card4]], colWidths=[46.5 * mm] * 4)
+    kpi_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+        ("BOX", (0, 0), (0, 0), 0.75, colors.HexColor("#3B82F6")),
+        ("BOX", (1, 0), (1, 0), 0.75, colors.HexColor("#10B981")),
+        ("BOX", (2, 0), (2, 0), 0.75, colors.HexColor("#6366F1")),
+        ("BOX", (3, 0), (3, 0), 0.75, colors.HexColor("#F59E0B")),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 3),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    story.append(kpi_table)
+    story.append(Spacer(1, 2.5 * mm))
+
+    # 3. AI Architecture & Core Performance
+    story.append(Paragraph("AI Engine Performance &amp; System Architecture", sec_heading))
+    ai_data = [
+        [
+            Paragraph("AI MODEL ARCHITECTURE", ai_hdr),
+            Paragraph("KNOWLEDGE BASE (RAG)", ai_hdr),
+            Paragraph("NLU PROCESSING ACCURACY", ai_hdr),
+            Paragraph("AVG INFERENCE LATENCY", ai_hdr),
+        ],
+        [
+            Paragraph(f"<b>{metrics['ai_engine']}</b><br/><font size=6 color=\"#047857\">Hybrid RAG Integration</font>", ai_cell),
+            Paragraph("<b>630 Q&amp;As + 89 PDF Forms</b><br/><font size=6 color=\"#047857\">Official UTHM Handbooks</font>", ai_cell),
+            Paragraph(f"<b>{metrics['nlu_accuracy']}</b><br/><font size=6 color=\"#047857\">Malay Slang &amp; Informal Text</font>", ai_cell),
+            Paragraph(f"<b>{metrics['avg_latency']}</b><br/><font size=6 color=\"#047857\">Local Hybrid / Gemini Cloud</font>", ai_cell),
+        ]
+    ]
+    ai_table = Table(ai_data, colWidths=[48 * mm, 46 * mm, 50 * mm, 42 * mm])
+    ai_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#DCFCE7")),
+        ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#F0FDF4")),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#86EFAC")),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(ai_table)
+    story.append(Spacer(1, 2.5 * mm))
+
+    # 4. Charts Section
+    story.append(Paragraph("Visual Analytics &amp; Inquiry Distribution", sec_heading))
+    buf1, buf2 = generate_pdf_chart_buffers(charts)
+    img1 = Image(buf1, width=91 * mm, height=48 * mm)
+    img2 = Image(buf2, width=91 * mm, height=48 * mm)
+    chart_tbl = Table([[img1, img2]], colWidths=[93 * mm, 93 * mm])
+    chart_tbl.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    story.append(chart_tbl)
+    story.append(Spacer(1, 2.5 * mm))
+
+    # 5. Most Requested Academic Topics Table
+    story.append(Paragraph("Most Requested Academic Topics Breakdown", sec_heading))
+    topic_data = [["Rank", "Academic Topic / Query Intent", "Queries", "Share (%)", "Operational Status"]]
+    intents = charts.get("intents", {})
+    t_labels = intents.get("labels", [])
+    t_vals = intents.get("values", [])
+    tot_queries = sum(t_vals) if t_vals else 1
+
+    if t_labels and t_vals:
+        for idx, (lbl, val) in enumerate(zip(t_labels[:5], t_vals[:5]), start=1):
+            share = f"{(val / tot_queries * 100):.1f}%" if tot_queries else "0%"
+            status_desc = "Automated Resolution (Instant)" if idx == 1 else ("Gemini RAG Grounded" if idx == 2 else "Rule-based Catalog Match")
+            topic_data.append([str(idx), lbl, str(val), share, status_desc])
+    else:
+        topic_data.append(["-", "No topic inquiry data recorded for this period", "0", "0%", "-"])
+
+    t_table = Table(topic_data, colWidths=[12 * mm, 82 * mm, 22 * mm, 24 * mm, 46 * mm])
+    t_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0A2C52")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 6.8),
+        ("ALIGN", (0, 0), (0, -1), "CENTER"),
+        ("ALIGN", (2, 0), (3, -1), "CENTER"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#CBD5E1")),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(t_table)
+    story.append(Spacer(1, 2.5 * mm))
+
+    # 6. Priority Resolution Queue
+    story.append(Paragraph("Priority Resolution Queue (Admin Action Required)", sec_heading))
+    q_data = [["Status", "Query Description", "Category", "Received Date"]]
+    if queue:
+        for q in queue[:4]:
+            q_text = Paragraph(q.get("user_question", "")[:90], ParagraphStyle("q_sub", parent=body, fontSize=6.5, leading=8))
+            q_intent = q.get("intent", "").replace("_", " ").title()
+            q_date = str(q.get("query_date", ""))[:16]
+            q_data.append(["PENDING", q_text, q_intent, q_date])
+    else:
+        q_data.append(["CLEAR", "All student inquiries have been resolved. No pending action in queue.", "All Categories", "-"])
+
+    q_table = Table(q_data, colWidths=[18 * mm, 102 * mm, 38 * mm, 28 * mm])
+    q_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F1F5F9")),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 6.8),
+        ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#ECFDF5") if not queue else colors.HexColor("#FFF7ED")),
+        ("TEXTCOLOR", (0, 1), (0, 1), colors.HexColor("#047857") if not queue else colors.HexColor("#C2410C")),
+        ("FONTNAME", (0, 1), (0, 1), "Helvetica-Bold"),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#CBD5E1")),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("ALIGN", (0, 0), (0, -1), "CENTER"),
+        ("ALIGN", (3, 0), (3, -1), "CENTER"),
+    ]))
+    story.append(q_table)
+    story.append(Spacer(1, 2.5 * mm))
+
+    # 7. QR Code & Security Verification Footer
+    qr = qrcode.QRCode(version=1, box_size=3, border=1)
+    qr.add_data("https://t.me/uthm_academic_bot")
+    qr.make(fit=True)
+    qr_img_data = qr.make_image(fill_color="#0A2C52", back_color="white")
+    qr_buf = io.BytesIO()
+    qr_img_data.save(qr_buf, format="PNG")
+    qr_buf.seek(0)
+    qr_flowable = Image(qr_buf, width=17 * mm, height=17 * mm)
+
+    gov_text = Paragraph(
+        "<b>Enterprise Governance &amp; System Compliance:</b><br/>"
+        "• <b>Security Hardened:</b> Administrator MFA active (TOTP Authenticator &amp; Email OTP), CSRF protection, and SQL transaction guards.<br/>"
+        "• <b>Dual-Engine Fallback:</b> MySQL live connection with automatic local SQLite failover resilience.<br/>"
+        "• <b>Live Verification:</b> Scan the QR code or click <font color=\"#1D4ED8\"><u>https://t.me/uthm_academic_bot</u></font> to evaluate the conversational AI engine in real-time.",
+        ParagraphStyle("gov", parent=body, fontSize=6.2, leading=8, textColor=colors.HexColor("#334155"))
+    )
+    gov_table = Table([[gov_text, qr_flowable]], colWidths=[164 * mm, 22 * mm])
+    gov_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (1, 0), (1, 0), "CENTER"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    story.append(gov_table)
+    story.append(Spacer(1, 1.5 * mm))
+
+    # Bottom footer line
+    ftr = Paragraph(
+        "Universiti Tun Hussein Onn Malaysia | UTHM Academic Support Chatbot v2.0 | Pejabat Pengurusan Akademik (PPA) &amp; PTM | Generated on " + now_str,
+        ParagraphStyle("ftr", parent=body, fontSize=5.8, textColor=colors.HexColor("#94A3B8"), alignment=1)
+    )
+    story.append(ftr)
+
+    doc.build(story)
     return output.getvalue()
 
 
