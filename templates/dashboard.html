@@ -12,9 +12,9 @@
 
   <!-- Enterprise Navigation Sidebar -->
   <aside class="sidebar">
-    <a class="logo" href="{{ url_for('dashboard') }}">
-      <span>UA</span>
-      <strong>Academic<br>Analytics</strong>
+    <a class="logo" href="{{ url_for('dashboard') }}" style="display: flex; align-items: center; gap: 10px; padding: 10px 14px;">
+      <img src="{{ url_for('static', filename='uthm_logo.png') }}" alt="UTHM Logo" style="height: 32px; background: white; padding: 2px 4px; border-radius: 6px;">
+      <strong style="line-height: 1.15; font-size: 0.85rem;">UTHM<br>Academic Bot</strong>
     </a>
     
     <nav>
@@ -50,22 +50,28 @@
   <!-- Main Analytics Workspace -->
   <main class="dashboard-main">
     <header class="topbar">
-      <div>
-        <p class="eyebrow">UTHM ACADEMIC ANALYTICS PORTAL</p>
-        <h1>Executive Dashboard Overview</h1>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <img src="{{ url_for('static', filename='uthm_logo.png') }}" alt="UTHM Logo" style="height: 46px; background: white; padding: 4px 8px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border: 1px solid #E2E8F0;">
+        <div>
+          <p class="eyebrow" style="margin: 0; color: #0284C7; font-weight: 700; letter-spacing: 0.05em;">UNIVERSITI TUN HUSSEIN ONN MALAYSIA · PPA &amp; PTM</p>
+          <h1 style="margin: 2px 0 0 0; font-size: 1.45rem; color: #0F172A; font-weight: 800;">Executive Analytics &amp; Reporting Portal</h1>
+        </div>
       </div>
       
       <div class="admin-actions">
+        <button class="action-btn" type="button" onclick="document.getElementById('qrModal').style.display='flex'" title="Scan Live Bot QR" style="background: #EFF6FF; border-color: #3B82F6; color: #1D4ED8; font-weight: 700;">
+          📱 Scan Bot QR
+        </button>
         <button class="action-btn" type="button" onclick="location.reload()" title="Refresh Live Data">
           🔄 Sync Data
         </button>
         <a class="action-btn" href="{{ url_for('export_csv', period=period) }}">
           ⇩ Export CSV
         </a>
-        <a class="action-btn primary" href="{{ url_for('export_pdf', period=period) }}">
+        <a class="action-btn primary" href="{{ url_for('export_pdf', period=period) }}" title="Download Executive PDF with Charts &amp; QR">
           ▣ Export Executive PDF
         </a>
-        <a class="avatar" href="{{ url_for('profile') }}" title="Profile & Security">
+        <a class="avatar" href="{{ url_for('profile') }}" title="Profile &amp; Security">
           {{ admin_name[:1]|upper }}
         </a>
         <a class="logout-link" href="{{ url_for('logout') }}">Log out</a>
@@ -327,6 +333,27 @@
       }
     }
   </script>
+  <!-- Live Bot QR Code Modal -->
+  <div id="qrModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;" onclick="if(event.target===this) this.style.display='none'">
+    <div style="background: white; border-radius: 18px; max-width: 380px; width: 100%; padding: 26px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative;">
+      <button type="button" onclick="document.getElementById('qrModal').style.display='none'" style="position: absolute; top: 14px; right: 14px; background: #F1F5F9; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; font-weight: bold; color: #64748B;">✕</button>
+      <div style="margin-bottom: 14px;">
+        <span style="font-size: 0.72rem; font-weight: 800; color: #0284C7; letter-spacing: 0.05em; text-transform: uppercase;">Official Telegram Assistant</span>
+        <h3 style="margin: 4px 0 0 0; font-size: 1.25rem; color: #0F172A; font-weight: 800;">Scan to Test Live Chatbot</h3>
+      </div>
+      <div style="background: #F8FAFC; padding: 16px; border-radius: 14px; border: 1px solid #E2E8F0; margin: 16px 0;">
+        <img src="{{ url_for('static', filename='telegram_bot_qr.png') }}" alt="Telegram Bot QR" style="width: 220px; height: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+      </div>
+      <p style="margin: 0 0 16px 0; font-size: 0.88rem; color: #475569;">
+        Official Username: <strong style="color: #0A2C52;">@UTHMACADEMICBOT</strong>
+      </p>
+      <a href="https://t.me/uthmacademicbot" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; background: #0088cc; color: white; text-decoration: none; padding: 11px 18px; border-radius: 10px; font-weight: 700; font-size: 0.92rem; box-shadow: 0 4px 12px rgba(0,136,204,0.35);">
+        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+        Buka di Telegram
+      </a>
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 </body>
 </html>

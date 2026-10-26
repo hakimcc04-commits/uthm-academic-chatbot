@@ -597,22 +597,35 @@ def build_pdf_report(period: str):
 
     story = []
 
-    # 1. Header Banner
+    # 1. Header Banner with Official UTHM Logo
     now_str = datetime.now().strftime("%d %b %Y, %H:%M")
+    logo_path = BASE_DIR / "static" / "uthm_logo.png"
+    if not logo_path.exists():
+        logo_path = BASE_DIR / "assets" / "uthm_logo_clean.png"
+
+    if logo_path.exists():
+        logo_img = Image(str(logo_path), width=38 * mm, height=14.7 * mm)
+    else:
+        logo_img = Paragraph("<b>UTHM</b>", ParagraphStyle("logo_alt", fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#0A2C52"), alignment=1))
+
     hdr_data = [
         [
-            Paragraph("<b>UNIVERSITI TUN HUSSEIN ONN MALAYSIA (UTHM)</b><br/><font size=6.5 color=\"#BAE6FD\">PEJABAT PENGURUSAN AKADEMIK (PPA) &amp; PUSAT TEKNOLOGI MAKLUMAT (PTM)</font><br/><font size=11 color=\"#FFFFFF\"><b>UTHM ACADEMIC CHATBOT — EXECUTIVE ANALYTICS REPORT</b></font>", ParagraphStyle("hdr_txt", fontName="Helvetica", fontSize=7.5, leading=10.5, textColor=colors.white)),
+            logo_img,
+            Paragraph("<b>UNIVERSITI TUN HUSSEIN ONN MALAYSIA (UTHM)</b><br/><font size=6.5 color=\"#BAE6FD\">PEJABAT PENGURUSAN AKADEMIK (PPA) &amp; PUSAT TEKNOLOGI MAKLUMAT (PTM)</font><br/><font size=10.5 color=\"#FFFFFF\"><b>UTHM ACADEMIC CHATBOT — EXECUTIVE ANALYTICS REPORT</b></font>", ParagraphStyle("hdr_txt", fontName="Helvetica", fontSize=7.5, leading=10, textColor=colors.white)),
             Paragraph(f"<b>STATUS:</b> <font color=\"#4ADE80\">OPERATIONAL</font><br/><b>VERSION:</b> 2.0 (Gemini AI RAG)<br/><b>PERIOD:</b> {period.upper()}<br/><b>DATE:</b> {now_str}", ParagraphStyle("hdr_meta", fontName="Helvetica", fontSize=6.5, leading=8.5, textColor=colors.HexColor("#E2E8F0"), alignment=2))
         ]
     ]
-    hdr_table = Table(hdr_data, colWidths=[126 * mm, 60 * mm])
+    hdr_table = Table(hdr_data, colWidths=[40 * mm, 96 * mm, 50 * mm])
     hdr_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#0A2C52")),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("BACKGROUND", (0, 0), (0, 0), colors.white),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (0, 0), "CENTER"),
+        ("BOX", (0, 0), (0, 0), 0.5, colors.HexColor("#CBD5E1")),
     ]))
     story.append(hdr_table)
     story.append(Spacer(1, 3 * mm))
@@ -749,24 +762,31 @@ def build_pdf_report(period: str):
     story.append(q_table)
     story.append(Spacer(1, 2.5 * mm))
 
-    # 7. QR Code & Security Verification Footer
-    qr = qrcode.QRCode(version=1, box_size=3, border=1)
-    qr.add_data("https://t.me/uthm_academic_bot")
-    qr.make(fit=True)
-    qr_img_data = qr.make_image(fill_color="#0A2C52", back_color="white")
-    qr_buf = io.BytesIO()
-    qr_img_data.save(qr_buf, format="PNG")
-    qr_buf.seek(0)
-    qr_flowable = Image(qr_buf, width=17 * mm, height=17 * mm)
+    # 7. Official Telegram Bot QR Code & Security Verification Footer
+    qr_path = BASE_DIR / "static" / "telegram_bot_qr.png"
+    if not qr_path.exists():
+        qr_path = BASE_DIR / "assets" / "telegram_bot_qr_clean.png"
+
+    if qr_path.exists():
+        qr_flowable = Image(str(qr_path), width=20 * mm, height=21.3 * mm)
+    else:
+        qr = qrcode.QRCode(version=1, box_size=3, border=1)
+        qr.add_data("https://t.me/uthmacademicbot")
+        qr.make(fit=True)
+        qr_img_data = qr.make_image(fill_color="#0A2C52", back_color="white")
+        qr_buf = io.BytesIO()
+        qr_img_data.save(qr_buf, format="PNG")
+        qr_buf.seek(0)
+        qr_flowable = Image(qr_buf, width=19 * mm, height=19 * mm)
 
     gov_text = Paragraph(
-        "<b>Enterprise Governance &amp; System Compliance:</b><br/>"
+        "<b>Enterprise Governance &amp; Official Live Bot Access:</b><br/>"
         "• <b>Security Hardened:</b> Administrator MFA active (TOTP Authenticator &amp; Email OTP), CSRF protection, and SQL transaction guards.<br/>"
         "• <b>Dual-Engine Fallback:</b> MySQL live connection with automatic local SQLite failover resilience.<br/>"
-        "• <b>Live Verification:</b> Scan the QR code or click <font color=\"#1D4ED8\"><u>https://t.me/uthm_academic_bot</u></font> to evaluate the conversational AI engine in real-time.",
-        ParagraphStyle("gov", parent=body, fontSize=6.2, leading=8, textColor=colors.HexColor("#334155"))
+        "• <b>Official Telegram Bot:</b> Scan the QR code or click <font color=\"#1D4ED8\"><u>https://t.me/uthmacademicbot</u></font> (<b>@UTHMACADEMICBOT</b>) to test real-time AI responses.",
+        ParagraphStyle("gov", parent=body, fontSize=6.2, leading=8.5, textColor=colors.HexColor("#334155"))
     )
-    gov_table = Table([[gov_text, qr_flowable]], colWidths=[164 * mm, 22 * mm])
+    gov_table = Table([[gov_text, qr_flowable]], colWidths=[162 * mm, 24 * mm])
     gov_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
         ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
@@ -774,7 +794,7 @@ def build_pdf_report(period: str):
         ("ALIGN", (1, 0), (1, 0), "CENTER"),
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("RIGHTPADDING", (0, 0), (-1, -1), 3),
     ]))
     story.append(gov_table)
